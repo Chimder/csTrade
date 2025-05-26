@@ -1,0 +1,36 @@
+
+services:
+  postgres:
+    image: postgres:latest
+    container_name: postgres
+    restart: always
+    environment:
+      POSTGRES_DB: postgres
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - csTrade
+
+  pgweb:
+    image: sosedoff/pgweb
+    container_name: pgweb
+    restart: always
+    depends_on:
+      - postgres
+    environment:
+      PGWEB_DATABASE_URL: "postgres://postgres:postgres@postgres:5432/postgres?sslmode=disable"
+    ports:
+      - "8081:8081"
+    networks:
+      - csTrade
+
+volumes:
+  postgres_data:
+
+networks:
+  csTrade:
+    driver: bridge
