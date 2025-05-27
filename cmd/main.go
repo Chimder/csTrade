@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"csTrade/internal/handler"
 	"log"
 	"log/slog"
 	"net/http"
@@ -10,29 +11,20 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/gin-contrib/cors"
-	"github.com/gin-gonic/gin"
+	_ "github.com/lib/pq"
 )
 
+//		@title			csTrade Api
+//		@version		1.0
+//		@description	CSGO trade
+//	  @BasePath	/
 func main() {
 	LoggerInit()
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
-	r := gin.Default()
-	r.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"https://*", "http://*"},
-		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
-		AllowHeaders:     []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token"},
-		ExposeHeaders:    []string{"Link"},
-		AllowCredentials: false,
-		MaxAge:           300,
-	}))
-
-	r.GET("/healthz", func(c *gin.Context) {
-		c.String(200, "ok")
-	})
+	r := handler.Init()
 
 	srv := &http.Server{
 		Addr:         ":8080",

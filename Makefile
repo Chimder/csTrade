@@ -16,3 +16,6 @@ reset:
 
 down:
 	goose -dir $(MGDIR) postgres ${DB_URL} down
+
+swag:
+	swag init -g cmd/main.go
