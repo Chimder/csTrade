@@ -12,6 +12,7 @@ import (
 )
 
 func Init() *gin.Engine {
+	// cfg := config.LoadEnv()
 	r := gin.Default()
 	r.Use(cors.New(cors.Config{
 		AllowOrigins:     []string{"https://*", "http://*"},
@@ -21,6 +22,22 @@ func Init() *gin.Engine {
 		AllowCredentials: false,
 		MaxAge:           300,
 	}))
+
+	// client := bots.NewSteamClient(
+	// 	cfg.Username,
+	// 	cfg.Password,
+	// 	cfg.SteamID,
+	// 	cfg.SharedSecret,
+	// 	cfg.IdentitySecret,
+	// 	"",
+	// )
+	// err := client.Login()
+	// if err != nil {
+	// 	fmt.Printf("Login failed: %v\n", err)
+	// }
+	// fmt.Println("Successfully logged in to Steam!")
+	// fmt.Printf("Access Token: %s\n", client.AccessToken)
+
 	{
 		r.GET("/swagger", ginSwagger.WrapHandler(swaggerfiles.Handler))
 		r.GET("/healthz", func(c *gin.Context) {
@@ -44,15 +61,14 @@ func Init() *gin.Engine {
 
 	market := api.Group("/market")
 	{
-		//pub
-		market.GET("/listings", func(ctx *gin.Context) {})
-		market.GET("/listings/:id", func(ctx *gin.Context) {})
-		//priv
+		market.GET("/items", func(ctx *gin.Context) {})
+		market.GET("/item/:id", func(ctx *gin.Context) {})
+
 		marketPrivate := market.Use(middleware.AuthMiddleware())
 		{
-			marketPrivate.POST("/listings/sell", func(ctx *gin.Context) {})
-			marketPrivate.PUT("/listings/:id", func(ctx *gin.Context) {}) //change price
-			marketPrivate.DELETE("/listings/:id", func(ctx *gin.Context) {})
+			marketPrivate.POST("/item/sell", func(ctx *gin.Context) {})
+			marketPrivate.PUT("/item/:id", func(ctx *gin.Context) {}) //change price
+			marketPrivate.DELETE("/item/:id", func(ctx *gin.Context) {})
 			marketPrivate.POST("/listings/:id/buy", func(ctx *gin.Context) {}) //buy
 		}
 	}
