@@ -15,7 +15,6 @@ import (
 	"net/http"
 	"net/http/cookiejar"
 	"net/url"
-	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -28,7 +27,7 @@ const (
 	SteamLoginURL     = "https://login.steampowered.com"
 )
 
-type SteamClient struct {
+type SteamBot struct {
 	Username       string
 	Password       string
 	SteamID        string
@@ -58,7 +57,7 @@ type LoginResponse struct {
 	} `json:"response"`
 }
 
-func NewSteamClient(username, password, steamID, sharedSecret, identitySecret, deviceID string) *SteamClient {
+func NewSteamClient(username, password, steamID, sharedSecret, identitySecret, deviceID string) *SteamBot {
 	jar, _ := cookiejar.New(nil)
 
 	u, _ := url.Parse(SteamCommunityURL)
@@ -70,7 +69,7 @@ func NewSteamClient(username, password, steamID, sharedSecret, identitySecret, d
 		deviceID = "android:" + deviceID
 	}
 
-	return &SteamClient{
+	return &SteamBot{
 		Username:       username,
 		Password:       password,
 		SteamID:        steamID,
@@ -89,17 +88,16 @@ func NewSteamClient(username, password, steamID, sharedSecret, identitySecret, d
 	}
 }
 
-func (sc *SteamClient) apiCall(method, service, endpoint, version string, params map[string]string) (*http.Response, error) {
-	apiURL := fmt.Sprintf("%s/%s/%s/%s", SteamAPIURL, service, endpoint, version)
-
-	req, err := http.NewRequest(method, apiURL, nil)
+func (sc *SteamBot) apiCall(method, endpoint string, params map[string]string) (*http.Response, error) {
+	req, err := http.NewRequest(method, SteamAPIURL+endpoint, nil)
 	if err != nil {
 		return nil, err
 	}
 
-	req.Header.Set("Referer", SteamCommunityURL+"/")
-	req.Header.Set("Origin", SteamCommunityURL)
-	// req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
+	req.Header = http.Header{
+		"User-Agent": []string{"Mozilla/5.0 (Windows NT 10.0; Win64; x64)"},
+		"Origin":     []string{SteamCommunityURL},
+	}
 
 	if method == "GET" && params != nil {
 		q := req.URL.Query()
@@ -119,13 +117,8 @@ func (sc *SteamClient) apiCall(method, service, endpoint, version string, params
 	return sc.Client.Do(req)
 }
 
-func (sc *SteamClient) GenerateTOTPCode() (string, error) {
-	secret := strings.TrimSpace(sc.SharedSecret)
-	if len(secret)%4 != 0 {
-		secret += strings.Repeat("=", 4-len(secret)%4)
-	}
-
-	key, err := base64.StdEncoding.DecodeString(secret)
+func (sc *SteamBot) GenerateTOTPCode() (string, error) {
+	key, err := base64.StdEncoding.DecodeString(strings.TrimSpace(sc.SharedSecret))
 	if err != nil {
 		return "", fmt.Errorf("base64 decode failed: %v", err)
 	}
@@ -157,7 +150,7 @@ func (sc *SteamClient) GenerateTOTPCode() (string, error) {
 	return string(result), nil
 }
 
-func (sc *SteamClient) SignTradeOffer(tradeURL string) string {
+func (sc *SteamBot) SignTradeOffer(tradeURL string) string {
 	secret := strings.TrimSpace(sc.IdentitySecret)
 	if len(secret)%4 != 0 {
 		secret += strings.Repeat("=", 4-len(secret)%4)
@@ -169,124 +162,76 @@ func (sc *SteamClient) SignTradeOffer(tradeURL string) string {
 	return base64.StdEncoding.EncodeToString(h.Sum(nil))
 }
 
-func (sc *SteamClient) GetParamsForTrade(tradeURL string, itemID string, message string, apiKey string) (string, url.Values) {
-	signature := sc.SignTradeOffer(tradeURL)
+// func (sc *SteamBot) GetParamsForTrade(tradeURL string, itemID string, message string, apiKey string) (string, url.Values) {
+// 	signature := sc.SignTradeOffer(tradeURL)
 
-	apiURL := "https://api.steampowered.com/IEconService/CreateTradeOffer/v1/"
-	params := url.Values{}
-	params.Add("key", apiKey)
-	params.Add("tradeoffer_message", message)
-	params.Add("trade_offer_access_token", sc.AccessToken)
-	params.Add("trade_url", tradeURL)
-	params.Add("items_to_give[]", itemID)
-	params.Add("signature", signature)
+// 	apiURL := "https://api.steampowered.com/IEconService/CreateTradeOffer/v1/"
+// 	params := url.Values{}
+// 	params.Add("key", apiKey)
+// 	params.Add("tradeoffer_message", message)
+// 	params.Add("trade_offer_access_token", sc.AccessToken)
+// 	params.Add("trade_url", tradeURL)
+// 	params.Add("items_to_give[]", itemID)
+// 	params.Add("signature", signature)
 
-	return apiURL, params
-}
+// 	return apiURL, params
+// }
 
-func (sc *SteamClient) fetchRSAParams() (*RSAParams, error) {
-	if len(sc.Client.Jar.Cookies(&url.URL{Scheme: "https", Host: "steamcommunity.com"})) == 0 {
-		_, err := sc.Client.Get(SteamCommunityURL)
-		if err != nil {
-			return nil, fmt.Errorf("failed to initialize cookies: %v", err)
-		}
-	}
-
-	params := map[string]string{
-		"account_name": sc.Username,
-	}
-
-	// for range 5 {
-	resp, err := sc.apiCall("GET", "IAuthenticationService", "GetPasswordRSAPublicKey", "v1", params)
+func (sc *SteamBot) fetchRSAParams() (*RSAParams, error) {
+	params := map[string]string{"account_name": sc.Username}
+	resp, err := sc.apiCall("GET", "/IAuthenticationService/GetPasswordRSAPublicKey/v1/", params)
 	if err != nil {
 		return nil, err
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("could not obtain RSA")
-		// continue
+		return nil, fmt.Errorf("invalid status code: %d", resp.StatusCode)
 	}
 
-	type RSAResponse struct {
+	var rsaResp struct {
 		Response struct {
 			PublicKeyMod string `json:"publickey_mod"`
 			PublicKeyExp string `json:"publickey_exp"`
 			Timestamp    string `json:"timestamp"`
 		} `json:"response"`
 	}
-	var rsaResp RSAResponse
-	if err := json.NewDecoder(resp.Body).Decode(&rsaResp); err != nil {
-		// continue
-		return nil, fmt.Errorf("could not obtain RSA")
-	}
 
-	if rsaResp.Response.PublicKeyMod == "" || rsaResp.Response.PublicKeyExp == "" {
-		// continue
-		return nil, fmt.Errorf("could not obtain RSA")
+	if err := json.NewDecoder(resp.Body).Decode(&rsaResp); err != nil {
+		return nil, err
 	}
 
 	mod := new(big.Int)
-	exp := new(big.Int)
-
 	mod.SetString(rsaResp.Response.PublicKeyMod, 16)
+
+	exp := new(big.Int)
 	exp.SetString(rsaResp.Response.PublicKeyExp, 16)
 
-	publicKey := &rsa.PublicKey{
-		N: mod,
-		E: int(exp.Int64()),
-	}
-
 	return &RSAParams{
-		PublicKey: publicKey,
+		PublicKey: &rsa.PublicKey{N: mod, E: int(exp.Int64())},
 		Timestamp: rsaResp.Response.Timestamp,
 	}, nil
-	// }
-
-	// return nil, fmt.Errorf("could not obtain RSA key after 5 attempts")
 }
 
-func (sc *SteamClient) encryptPassword(rsaParams *RSAParams) (string, error) {
-	encrypted, err := rsa.EncryptPKCS1v15(rand.Reader, rsaParams.PublicKey, []byte(sc.Password))
-	if err != nil {
-		return "", err
-	}
-	return base64.StdEncoding.EncodeToString(encrypted), nil
-}
-
-func (sc *SteamClient) startAuth() (*LoginResponse, error) {
+func (sc *SteamBot) startAuth() (*LoginResponse, error) {
 	rsaParams, err := sc.fetchRSAParams()
 	if err != nil {
 		return nil, err
 	}
 
-	encryptedPassword, err := sc.encryptPassword(rsaParams)
+	encrypted, err := rsa.EncryptPKCS1v15(rand.Reader, rsaParams.PublicKey, []byte(sc.Password))
 	if err != nil {
 		return nil, err
 	}
 
-	data := url.Values{}
-	data.Set("account_name", sc.Username)
-	data.Set("persistence", "1")
-	data.Set("client_id", "")
-	data.Set("encrypted_password", encryptedPassword)
-	data.Set("encryption_timestamp", rsaParams.Timestamp)
-
-	req, err := http.NewRequest(
-		"POST",
-		SteamAPIURL+"/IAuthenticationService/BeginAuthSessionViaCredentials/v1/",
-		strings.NewReader(data.Encode()),
-	)
-	if err != nil {
-		return nil, err
+	data := map[string]string{
+		"account_name":         sc.Username,
+		"encrypted_password":   base64.StdEncoding.EncodeToString(encrypted),
+		"encryption_timestamp": rsaParams.Timestamp,
+		"persistence":          "1",
 	}
 
-	req.Header.Set("Referer", SteamCommunityURL+"/")
-	req.Header.Set("Origin", SteamCommunityURL)
-	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
-	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-
-	resp, err := sc.Client.Do(req)
+	resp, err := sc.apiCall("POST", "/IAuthenticationService/BeginAuthSessionViaCredentials/v1/", data)
 	if err != nil {
 		return nil, err
 	}
@@ -300,132 +245,77 @@ func (sc *SteamClient) startAuth() (*LoginResponse, error) {
 	return &loginResp, nil
 }
 
-func (sc *SteamClient) submitTOTP(clientID string) error {
+func (sc *SteamBot) submitTOTP(clientID string) error {
 	code, err := sc.GenerateTOTPCode()
 	if err != nil {
 		return err
 	}
-	fmt.Printf("Generated TOTP: %s\n", code)
+	slog.Info("Generated TOTP", "code", code)
 
-	data := url.Values{}
-	data.Set("client_id", clientID)
-	data.Set("steamid", sc.SteamID)
-	data.Set("code", code)
-	data.Set("code_type", "3")
-
-	// if sc.DeviceID != "" {
-	// 	data.Set("device_details", fmt.Sprintf(`{"device_id":"%s"}`, sc.DeviceID))
-	// }
-
-	req, err := http.NewRequest("POST",
-		SteamAPIURL+"/IAuthenticationService/UpdateAuthSessionWithSteamGuardCode/v1/",
-		strings.NewReader(data.Encode()))
-	if err != nil {
-		return err
+	data := map[string]string{
+		"client_id": clientID,
+		"steamid":   sc.SteamID,
+		"code":      code,
+		"code_type": "3",
 	}
 
-	req.Header.Set("Origin", SteamCommunityURL)
-	req.Header.Set("Referer", SteamCommunityURL+"/mobilelogin?oauth_client_id=DE45CD61")
-	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-
-	resp, err := sc.Client.Do(req)
+	resp, err := sc.apiCall("POST", "/IAuthenticationService/UpdateAuthSessionWithSteamGuardCode/v1/", data)
 	if err != nil {
 		return err
 	}
 	defer resp.Body.Close()
 
 	body, _ := io.ReadAll(resp.Body)
-	fmt.Println("SubmitTOTP response:", string(body))
+	slog.Debug("TOTP submit response", "status", resp.Status, "body", string(body))
 
 	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("non-OK status: %d", resp.StatusCode)
-	}
-
-	return nil
-}
-
-func (sc *SteamClient) getTokens(clientID, requestID string) error {
-	data := url.Values{}
-	data.Set("client_id", clientID)
-	data.Set("request_id", requestID)
-
-	for range 2 {
-		req, err := http.NewRequest(
-			"POST",
-			SteamAPIURL+"/IAuthenticationService/PollAuthSessionStatus/v1/",
-			strings.NewReader(data.Encode()),
-		)
-		if err != nil {
-			time.Sleep(3 * time.Second)
-			continue
-		}
-
-		req.Header.Set("Referer", SteamCommunityURL+"/")
-		req.Header.Set("Origin", SteamCommunityURL)
-		req.Header.Set("User-Agent", "Mozilla/5.0")
-		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-
-		resp, err := sc.Client.Do(req)
-		if err != nil {
-			time.Sleep(3 * time.Second)
-			continue
-		}
-		defer resp.Body.Close()
-		var pollResp struct {
-			Response struct {
-				AccessToken          string `json:"access_token"`
-				RefreshToken         string `json:"refresh_token"`
-				AccountName          string `json:"account_name"`
-				HadRemoteInteraction bool   `json:"had_remote_interaction"`
-			} `json:"response"`
-		}
-
-		if err := json.NewDecoder(resp.Body).Decode(&pollResp); err != nil {
-			return nil
-		}
-
-		fmt.Println("Access Token:", pollResp.Response.AccessToken)
-
-		if pollResp.Response.AccessToken != "" {
-			sc.AccessToken = pollResp.Response.AccessToken
-			sc.RefreshToken = pollResp.Response.RefreshToken
-			fmt.Printf("Success! Got tokens\n")
-			return nil
-		}
-
-		if pollResp.Response.AccessToken == "" {
-			return fmt.Errorf("steam error fetch access_token")
-		}
+		return fmt.Errorf("TOTP failed status: %d", resp.StatusCode)
 	}
 	return nil
 }
 
-func (sc *SteamClient) GetSteamTime() (time.Time, error) {
-	url := fmt.Sprintf("https://api.steampowered.com/ITwoFactorService/QueryTime/v1/?t=%d", time.Now().UnixNano())
+func (sc *SteamBot) getTokens(clientID, requestID string) error {
+	data := map[string]string{
+		"client_id":  clientID,
+		"request_id": requestID,
+	}
 
-	req, err := http.NewRequest("POST", url, nil)
+	resp, err := sc.apiCall("POST", "/IAuthenticationService/PollAuthSessionStatus/v1/", data)
 	if err != nil {
-		return time.Time{}, err
+		return err
 	}
-	req.Header.Set("Accept", "application/json")
-	req.Header.Set("Connection", "keep-alive")
-	req.Header.Set("Cache-Control", "max-age=0")
+	defer resp.Body.Close()
 
-	resp, err := sc.Client.Do(req)
+	var result struct {
+		Response struct {
+			AccessToken  string `json:"access_token"`
+			RefreshToken string `json:"refresh_token"`
+		} `json:"response"`
+	}
+
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return err
+	}
+
+	if result.Response.AccessToken == "" {
+		return fmt.Errorf("empty access token")
+	}
+
+	sc.AccessToken = result.Response.AccessToken
+	sc.RefreshToken = result.Response.RefreshToken
+	return nil
+}
+
+func (sc *SteamBot) GetSteamTime() (time.Time, error) {
+	resp, err := sc.apiCall("GET", "/ITwoFactorService/QueryTime/v1/", nil)
 	if err != nil {
 		return time.Time{}, err
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != http.StatusOK {
-		return time.Time{}, fmt.Errorf("invalid status code steam time: %d", resp.StatusCode)
-	}
-
-	contentType := resp.Header.Get("Content-Type")
-	if !strings.Contains(contentType, "application/json") {
-		body, _ := io.ReadAll(resp.Body)
-		os.WriteFile("steam_time_error.html", body, 0644)
-		return time.Time{}, fmt.Errorf("invalid content type: %s", contentType)
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return time.Time{}, err
 	}
 
 	var response struct {
@@ -434,9 +324,8 @@ func (sc *SteamClient) GetSteamTime() (time.Time, error) {
 		} `json:"response"`
 	}
 
-	body, _ := io.ReadAll(resp.Body)
 	if err := json.Unmarshal(body, &response); err != nil {
-		return time.Time{}, fmt.Errorf("json unmarshal error: %v\nBody: %s", err, string(body))
+		return time.Time{}, fmt.Errorf("failed to unmarshal server time: %w", err)
 	}
 
 	var serverTime int64
@@ -445,44 +334,29 @@ func (sc *SteamClient) GetSteamTime() (time.Time, error) {
 	case float64:
 		serverTime = int64(v)
 	case string:
-		t, err := strconv.ParseInt(v, 10, 64)
+		serverTime, err = strconv.ParseInt(v, 10, 64)
 		if err != nil {
-			return time.Time{}, fmt.Errorf("failed to parse server_time string: %v", err)
+			return time.Time{}, fmt.Errorf("invalid server time format: %w", err)
 		}
-		serverTime = t
-	case nil:
-		return time.Time{}, fmt.Errorf("server_time is missing in response")
 	default:
-		return time.Time{}, fmt.Errorf("unexpected type for server_time: %T", v)
+		return time.Time{}, fmt.Errorf("unexpected server time type: %T", v)
 	}
-
-	if serverTime == 0 {
-		return time.Time{}, fmt.Errorf("invalid server time value: 0")
-	}
-	slog.Info("time", "is", time.Unix(serverTime, 0))
 
 	return time.Unix(serverTime, 0), nil
 }
 
-func (sc *SteamClient) Login() error {
-	fmt.Printf("Starting authentication")
-
+func (sc *SteamBot) Login() error {
 	loginResp, err := sc.startAuth()
 	if err != nil {
-		return fmt.Errorf("start auth failed: %v", err)
+		return fmt.Errorf("start auth failed: %w", err)
 	}
-
-	if loginResp.Response.ClientID == "" {
-		return fmt.Errorf("login failed: no client_id received")
-	}
-	fmt.Printf("Got ClientID: %s, RequestID: %s\n", loginResp.Response.ClientID, loginResp.Response.RequestID)
 
 	if err := sc.submitTOTP(loginResp.Response.ClientID); err != nil {
-		return fmt.Errorf("TOTP submit failed: %v", err)
+		return fmt.Errorf("TOTP submit failed: %w", err)
 	}
 
 	if err := sc.getTokens(loginResp.Response.ClientID, loginResp.Response.RequestID); err != nil {
-		return fmt.Errorf("get tokens failed: %v", err)
+		return fmt.Errorf("get tokens failed: %w", err)
 	}
 
 	return nil
@@ -501,7 +375,7 @@ func (sc *SteamClient) Login() error {
 // }
 // >>>>>>>>??
 
-// func (sc *SteamClient) RefreshTokens() error {
+// func (sc *SteamBot) RefreshTokens() error {
 // 	data := url.Values{}
 // 	data.Set("steamid", sc.SteamID)
 // 	data.Set("refresh_token", sc.RefreshToken)
@@ -542,7 +416,7 @@ func (sc *SteamClient) Login() error {
 // 	return nil
 // }
 
-// func (sc *SteamClient) syncCookies() {
+// func (sc *SteamBot) syncCookies() {
 // 	u, _ := url.Parse(SteamCommunityURL)
 // 	cookies := sc.Client.Jar.Cookies(u)
 
