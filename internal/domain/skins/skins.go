@@ -14,11 +14,11 @@ type Skins struct {
 	} `json:"pattern"`
 	MinFloat float64 `json:"min_float"`
 	MaxFloat float64 `json:"max_float"`
-	Rarity   struct {
-		ID    string `json:"id"`
-		Name  string `json:"name"`
-		Color string `json:"color"`
-	} `json:"rarity"`
+	// Rarity   struct {
+	// 	ID    string `json:"id"`
+	// 	Name  string `json:"name"`
+	// 	Color string `json:"color"`
+	// } `json:"rarity"`
 	Stattrak    bool   `json:"stattrak"`
 	Souvenir    bool   `json:"souvenir,omitempty"`
 	PaintIndex  string `json:"paint_index"`

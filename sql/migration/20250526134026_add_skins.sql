@@ -2,10 +2,10 @@
 -- +goose StatementBegin
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
-CREATE TABLE skins (
+CREATE TABLE skin (
     id TEXT PRIMARY KEY,
     name TEXT NOT NULL,
-    description TEXT,
+    -- description TEXT,
     category_id TEXT,
     category_name TEXT,
     pattern_id TEXT,
@@ -25,11 +25,11 @@ CREATE TABLE skins (
     team_name TEXT
 );
 
-CREATE INDEX ON skins (name);
+CREATE INDEX ON skin (name);
 
 -- +goose StatementEnd
 
 -- +goose Down
 -- +goose StatementBegin
-DROP TABLE IF EXISTS skins
+DROP TABLE IF EXISTS skin
 -- +goose StatementEnd

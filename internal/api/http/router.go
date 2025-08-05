@@ -1,10 +1,10 @@
-package handler
+package http
 
 import (
 	"csTrade/config"
 	_ "csTrade/docs"
+	"csTrade/internal/api/middleware"
 	"csTrade/internal/domain/bots"
-	"csTrade/internal/handler/middleware"
 	"fmt"
 
 	"github.com/gin-contrib/cors"

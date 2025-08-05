@@ -1,0 +1,359 @@
+{
+    "assets": [
+        {
+            "appid": 730,
+            "contextid": "2",
+            "assetid": "44645272771",
+            "classid": "310777321",
+            "instanceid": "6454396265",
+            "amount": "1"
+        },
+        {
+            "appid": 730,
+            "contextid": "2",
+            "assetid": "44634773168",
+            "classid": "937251650",
+            "instanceid": "1363818004",
+            "amount": "1"
+        },
+        {
+            "appid": 730,
+            "contextid": "2",
+            "assetid": "44634616472",
+            "classid": "6918194229",
+            "instanceid": "1363818010",
+            "amount": "1"
+        }
+    ],
+    "descriptions": [
+        {
+            "appid": 730,
+            "classid": "310777321",
+            "instanceid": "6454396265",
+            "currency": 0,
+            "background_color": "",
+            "icon_url": "i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyLwlcK3wjFL0P-re6xSNPGdMWqVxedjva86HSrnxkx3tTjdz42ud36fbwVxD8RyQbICtBe8kdXgZe624gCK2YhB02yg2fLyHdkl",
+            "descriptions": [
+                {
+                    "type": "html",
+                    "value": "Exterior: Field-Tested",
+                    "name": "exterior_wear"
+                },
+                {
+                    "type": "html",
+                    "value": " ",
+                    "name": "blank"
+                },
+                {
+                    "type": "html",
+                    "value": "Powerful and reliable, the AK-47 is one of the most popular assault rifles in the world. It is most deadly in short, controlled bursts of fire. It has been spray-painted using mesh fencing and cardboard cutouts as stencils.\n\n<i>A predator is a predator, no matter the environment</i>",
+                    "name": "description"
+                },
+                {
+                    "type": "html",
+                    "value": " ",
+                    "name": "blank"
+                },
+                {
+                    "type": "html",
+                    "value": "The Dust 2 Collection",
+                    "color": "9da1a9",
+                    "name": "itemset_name"
+                },
+                {
+                    "type": "html",
+                    "value": " ",
+                    "name": "blank"
+                },
+                {
+                    "type": "html",
+                    "value": "<br><div id=\"sticker_info\" class=\"sticker_info\" style=\"border: 2px solid rgb(102, 102, 102); border-radius: 6px; width=100; margin:4px; padding:8px;\"><center><img width=64 height=48 src=\"https://cdn.steamstatic.com/apps/730/icons/econ/stickers/sha2024/navi.e623a47f6caecb8324a7cc1dcb0279df75857718.png\" title=\"Sticker: Natus Vincere | Shanghai 2024\"><img width=64 height=48 src=\"https://cdn.steamstatic.com/apps/730/icons/econ/stickers/sha2024/navi.e623a47f6caecb8324a7cc1dcb0279df75857718.png\" title=\"Sticker: Natus Vincere | Shanghai 2024\"><img width=64 height=48 src=\"https://cdn.steamstatic.com/apps/730/icons/econ/stickers/sha2024/navi.e623a47f6caecb8324a7cc1dcb0279df75857718.png\" title=\"Sticker: Natus Vincere | Shanghai 2024\"><img width=64 height=48 src=\"https://cdn.steamstatic.com/apps/730/icons/econ/stickers/sha2024/navi.e623a47f6caecb8324a7cc1dcb0279df75857718.png\" title=\"Sticker: Natus Vincere | Shanghai 2024\"><img width=64 height=48 src=\"https://cdn.steamstatic.com/apps/730/icons/econ/stickers/sha2024/navi.e623a47f6caecb8324a7cc1dcb0279df75857718.png\" title=\"Sticker: Natus Vincere | Shanghai 2024\"><br>Sticker: Natus Vincere | Shanghai 2024, Natus Vincere | Shanghai 2024, Natus Vincere | Shanghai 2024, Natus Vincere | Shanghai 2024, Natus Vincere | Shanghai 2024</center></div>",
+                    "name": "sticker_info"
+                }
+            ],
+            "tradable": 1,
+            "actions": [
+                {
+                    "link": "steam://rungame/730/76561202255233023/+csgo_econ_action_preview%20S%owner_steamid%A%assetid%D14323714440739848537",
+                    "name": "Inspect in Game..."
+                }
+            ],
+            "name": "AK-47 | Safari Mesh",
+            "name_color": "D2D2D2",
+            "type": "Industrial Grade Rifle",
+            "market_name": "AK-47 | Safari Mesh (Field-Tested)",
+            "market_hash_name": "AK-47 | Safari Mesh (Field-Tested)",
+            "market_actions": [
+                {
+                    "link": "steam://rungame/730/76561202255233023/+csgo_econ_action_preview%20M%listingid%A%assetid%D14323714440739848537",
+                    "name": "Inspect in Game..."
+                }
+            ],
+            "commodity": 0,
+            "market_tradable_restriction": 7,
+            "market_marketable_restriction": 7,
+            "marketable": 1,
+            "tags": [
+                {
+                    "category": "Type",
+                    "internal_name": "CSGO_Type_Rifle",
+                    "localized_category_name": "Type",
+                    "localized_tag_name": "Rifle"
+                },
+                {
+                    "category": "Weapon",
+                    "internal_name": "weapon_ak47",
+                    "localized_category_name": "Weapon",
+                    "localized_tag_name": "AK-47"
+                },
+                {
+                    "category": "ItemSet",
+                    "internal_name": "set_dust_2",
+                    "localized_category_name": "Collection",
+                    "localized_tag_name": "The Dust 2 Collection"
+                },
+                {
+                    "category": "Quality",
+                    "internal_name": "normal",
+                    "localized_category_name": "Category",
+                    "localized_tag_name": "Normal"
+                },
+                {
+                    "category": "Rarity",
+                    "internal_name": "Rarity_Uncommon_Weapon",
+                    "localized_category_name": "Quality",
+                    "localized_tag_name": "Industrial Grade",
+                    "color": "5e98d9"
+                },
+                {
+                    "category": "Exterior",
+                    "internal_name": "WearCategory2",
+                    "localized_category_name": "Exterior",
+                    "localized_tag_name": "Field-Tested"
+                },
+                {
+                    "category": "Tournament",
+                    "internal_name": "Tournament23",
+                    "localized_category_name": "Tournament",
+                    "localized_tag_name": "Perfect World Shanghai 2024"
+                },
+                {
+                    "category": "TournamentTeam",
+                    "internal_name": "Team12",
+                    "localized_category_name": "Team",
+                    "localized_tag_name": "Natus Vincere"
+                }
+            ],
+            "sealed": 0
+        },
+        {
+            "appid": 730,
+            "classid": "937251650",
+            "instanceid": "1363818004",
+            "currency": 0,
+            "background_color": "",
+            "icon_url": "i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL1m5fn8Sdk7v-RarZiLuqWMXSAwPx9vORWQyC0nQlp4zzdydqtJXuTOgZzW5F4QbNZ4UK7l9e1N-Pq5AeNj9hHmH783S9J6zErvbgcMfnnyA",
+            "descriptions": [
+                {
+                    "type": "html",
+                    "value": "Exterior: Minimal Wear",
+                    "name": "exterior_wear"
+                },
+                {
+                    "type": "html",
+                    "value": " ",
+                    "name": "blank"
+                },
+                {
+                    "type": "html",
+                    "value": "As expensive as it is powerful, the Desert Eagle is an iconic pistol that is difficult to master but surprisingly accurate at long range. It has been painted in an art deco pattern using metallic automotive paints.\n\n<i>Everyone's searching for silver and gold</i>",
+                    "name": "description"
+                },
+                {
+                    "type": "html",
+                    "value": " ",
+                    "name": "blank"
+                },
+                {
+                    "type": "html",
+                    "value": "The Chroma 2 Collection",
+                    "color": "9da1a9",
+                    "name": "itemset_name"
+                },
+                {
+                    "type": "html",
+                    "value": " ",
+                    "name": "blank"
+                }
+            ],
+            "tradable": 1,
+            "actions": [
+                {
+                    "link": "steam://rungame/730/76561202255233023/+csgo_econ_action_preview%20S%owner_steamid%A%assetid%D2920760976242436681",
+                    "name": "Inspect in Game..."
+                }
+            ],
+            "name": "Desert Eagle | Bronze Deco",
+            "name_color": "D2D2D2",
+            "type": "Mil-Spec Grade Pistol",
+            "market_name": "Desert Eagle | Bronze Deco (Minimal Wear)",
+            "market_hash_name": "Desert Eagle | Bronze Deco (Minimal Wear)",
+            "market_actions": [
+                {
+                    "link": "steam://rungame/730/76561202255233023/+csgo_econ_action_preview%20M%listingid%A%assetid%D2920760976242436681",
+                    "name": "Inspect in Game..."
+                }
+            ],
+            "commodity": 0,
+            "market_tradable_restriction": 7,
+            "market_marketable_restriction": 7,
+            "marketable": 1,
+            "tags": [
+                {
+                    "category": "Type",
+                    "internal_name": "CSGO_Type_Pistol",
+                    "localized_category_name": "Type",
+                    "localized_tag_name": "Pistol"
+                },
+                {
+                    "category": "Weapon",
+                    "internal_name": "weapon_deagle",
+                    "localized_category_name": "Weapon",
+                    "localized_tag_name": "Desert Eagle"
+                },
+                {
+                    "category": "ItemSet",
+                    "internal_name": "set_community_7",
+                    "localized_category_name": "Collection",
+                    "localized_tag_name": "The Chroma 2 Collection"
+                },
+                {
+                    "category": "Quality",
+                    "internal_name": "normal",
+                    "localized_category_name": "Category",
+                    "localized_tag_name": "Normal"
+                },
+                {
+                    "category": "Rarity",
+                    "internal_name": "Rarity_Rare_Weapon",
+                    "localized_category_name": "Quality",
+                    "localized_tag_name": "Mil-Spec Grade",
+                    "color": "4b69ff"
+                },
+                {
+                    "category": "Exterior",
+                    "internal_name": "WearCategory1",
+                    "localized_category_name": "Exterior",
+                    "localized_tag_name": "Minimal Wear"
+                }
+            ],
+            "sealed": 0
+        },
+        {
+            "appid": 730,
+            "classid": "6918194229",
+            "instanceid": "1363818010",
+            "currency": 0,
+            "background_color": "",
+            "icon_url": "i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyLlm5W5wjFU0OaraahSLPmUBnPex7cj4Lg9GS-ylB4jsGTSzov_JHvDag8nCcB4FrZes0XtwIblNOLhshue1dxd5qECaQ",
+            "descriptions": [
+                {
+                    "type": "html",
+                    "value": "Exterior: Minimal Wear",
+                    "name": "exterior_wear"
+                },
+                {
+                    "type": "html",
+                    "value": " ",
+                    "name": "blank"
+                },
+                {
+                    "type": "html",
+                    "value": "An ideal pistol for the Terrorist on the move, the Tec-9 is lethal in close quarters and features a high magazine capacity. It has been painted using different shades of blue.\n\n<i>Move fast, shoot fast, win fast</i>",
+                    "name": "description"
+                },
+                {
+                    "type": "html",
+                    "value": " ",
+                    "name": "blank"
+                },
+                {
+                    "type": "html",
+                    "value": "The Ascent Collection",
+                    "color": "9da1a9",
+                    "name": "itemset_name"
+                },
+                {
+                    "type": "html",
+                    "value": " ",
+                    "name": "blank"
+                }
+            ],
+            "tradable": 1,
+            "actions": [
+                {
+                    "link": "steam://rungame/730/76561202255233023/+csgo_econ_action_preview%20S%owner_steamid%A%assetid%D10010380532712329488",
+                    "name": "Inspect in Game..."
+                }
+            ],
+            "name": "Tec-9 | Blue Blast",
+            "name_color": "D2D2D2",
+            "type": "Consumer Grade Pistol",
+            "market_name": "Tec-9 | Blue Blast (Minimal Wear)",
+            "market_hash_name": "Tec-9 | Blue Blast (Minimal Wear)",
+            "market_actions": [
+                {
+                    "link": "steam://rungame/730/76561202255233023/+csgo_econ_action_preview%20M%listingid%A%assetid%D10010380532712329488",
+                    "name": "Inspect in Game..."
+                }
+            ],
+            "commodity": 0,
+            "market_tradable_restriction": 7,
+            "market_marketable_restriction": 7,
+            "marketable": 1,
+            "tags": [
+                {
+                    "category": "Type",
+                    "internal_name": "CSGO_Type_Pistol",
+                    "localized_category_name": "Type",
+                    "localized_tag_name": "Pistol"
+                },
+                {
+                    "category": "Weapon",
+                    "internal_name": "weapon_tec9",
+                    "localized_category_name": "Weapon",
+                    "localized_tag_name": "Tec-9"
+                },
+                {
+                    "category": "ItemSet",
+                    "internal_name": "set_timed_drops_cool",
+                    "localized_category_name": "Collection",
+                    "localized_tag_name": "The Ascent Collection"
+                },
+                {
+                    "category": "Quality",
+                    "internal_name": "normal",
+                    "localized_category_name": "Category",
+                    "localized_tag_name": "Normal"
+                },
+                {
+                    "category": "Rarity",
+                    "internal_name": "Rarity_Common_Weapon",
+                    "localized_category_name": "Quality",
+                    "localized_tag_name": "Consumer Grade",
+                    "color": "b0c3d9"
+                },
+                {
+                    "category": "Exterior",
+                    "internal_name": "WearCategory1",
+                    "localized_category_name": "Exterior",
+                    "localized_tag_name": "Minimal Wear"
+                }
+            ],
+            "sealed": 0
+        }
+    ],
+    "total_inventory_count": 3,
+    "success": 1,
+    "rwgrsn": -2
+}

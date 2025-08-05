@@ -63,10 +63,10 @@ func main() {
 	}
 
 	query := `
-INSERT INTO skins (
-  id, name, description, category_id, category_name, pattern_id, pattern_name, min_float, max_float, rarity_id, rarity_name, rarity_color, stattrak, souvenir, paint_index, legacy_model, image, phase, team_id, team_name
+INSERT INTO skin (
+  id, name, category_id, category_name, pattern_id, pattern_name, min_float, max_float, rarity_id, rarity_name, rarity_color, stattrak, souvenir, paint_index, legacy_model, image, phase, team_id, team_name
   ) VALUES (
-    @id, @name, @description, @category_id, @category_name, @pattern_id, @pattern_name, @min_float, @max_float, @rarity_id, @rarity_name, @rarity_color, @stattrak, @souvenir, @paint_index, @legacy_model, @image, @phase, @team_id, @team_name
+    @id, @name, @category_id, @category_name, @pattern_id, @pattern_name, @min_float, @max_float, @rarity_id, @rarity_name, @rarity_color, @stattrak, @souvenir, @paint_index, @legacy_model, @image, @phase, @team_id, @team_name
   )
 	`
 
@@ -76,7 +76,6 @@ INSERT INTO skins (
 		skinsBatchInsert.Queue(query, pgx.NamedArgs{
 			"id":            v.ID,
 			"name":          v.Name,
-			"description":   v.Description,
 			"category_id":   v.Category.ID,
 			"category_name": v.Category.Name,
 			"pattern_id":    v.Pattern.ID,
