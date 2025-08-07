@@ -1,11 +1,16 @@
 package main
 
 import (
-	"csTrade/config"
-	"csTrade/internal/domain/bots"
-	"fmt"
+	"context"
+	router "csTrade/internal/api/http"
+	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
 	"time"
-	// _ "github.com/lib/pq"
+
+	_ "github.com/lib/pq"
+	"github.com/rs/zerolog/log"
 )
 
 //		@title			csTrairde Api
@@ -13,53 +18,36 @@ import (
 //		@description	CSGO trade
 //	  @BasePath	/
 func main() {
-	// LoggerInit()
+	SetupLogger()
 
-	// ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
-	// defer stop()
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
 
-	// r := handler.Init()
-	cfg := config.LoadEnv()
-	client := bots.NewSteamClient(
-		cfg.Username,
-		cfg.Password,
-		cfg.SteamID,
-		cfg.SharedSecret,
-		cfg.IdentitySecret,
-		"",
-	)
-	err := client.Login()
-	if err != nil {
-		fmt.Printf("Login failed: %v\n", err)
+	r := router.Init()
+	srv := &http.Server{
+		Addr:         ":8080",
+		Handler:      r,
+		ReadTimeout:  5 * time.Second,
+		WriteTimeout: 10 * time.Second,
+		IdleTimeout:  120 * time.Second,
 	}
-	fmt.Println("Successfully logged in to Steam!")
-	fmt.Printf("Access Token: %s\n", client.AccessToken)
-	time.Sleep(5 * time.Second)
 
-	// srv := &http.Server{
-	// 	Addr:         ":8080",
-	// 	Handler:      r,
-	// 	ReadTimeout:  5 * time.Second,
-	// 	WriteTimeout: 10 * time.Second,
-	// 	IdleTimeout:  120 * time.Second,
-	// }
+	go func() {
+		if err := srv.ListenAndServe(); err != nil {
+			log.Fatal().Err(err).Msg("Server error")
+		}
+	}()
 
-	// go func() {
-	// 	if err := srv.ListenAndServe(); err != nil {
-	// 		log.Fatalf("Server error: %v", err)
-	// 	}
-	// }()
+	log.Info().Msg("Server is running...")
+	<-ctx.Done()
+	log.Info().Msg("Shutting down server...")
 
-	// slog.Info("Server is running...")
-	// <-ctx.Done()
-	// slog.Info("Shutting down server...")
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
 
-	// shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	// defer cancel()
-
-	// if err := srv.Shutdown(shutdownCtx); err != nil {
-	// 	slog.Error("Server shutdown error", "error", err)
-	// } else {
-	// 	slog.Info("Server stopped gracefully")
-	// }
+	if err := srv.Shutdown(shutdownCtx); err != nil {
+		log.Error().Err(err).Msg("Server shutdown error")
+	} else {
+		log.Info().Msg("Server stopped gracefully")
+	}
 }

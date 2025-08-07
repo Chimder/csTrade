@@ -13,7 +13,7 @@ const (
 	TransactionFailed    TransactionStatus = "failed"
 )
 
-type Transaction struct {
+type TransactionDB struct {
 	ID        uuid.UUID         `db:"id"`
 	OfferID   uuid.UUID         `db:"offer_id"`
 	SellerID  uuid.UUID         `db:"seller_id"`
@@ -34,6 +34,6 @@ type Transaction struct {
 	TagWeaponName     string `db:"tag_weapon_name"`
 	TagQuality        string `db:"tag_quality"`
 	TagRarity         string `db:"tag_rarity"`
-	TagRarityColor    string `db:"tag_rarity_color"`
 	TagExterior       string `db:"tag_exterior"`
+	TagRarityColor    string `db:"tag_rarity_color"`
 }

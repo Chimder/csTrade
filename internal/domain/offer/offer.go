@@ -1,4 +1,4 @@
-package order
+package offer
 
 import (
 	"time"
@@ -6,7 +6,7 @@ import (
 	"github.com/google/uuid"
 )
 
-type Offer struct {
+type OfferDB struct {
 	ID        uuid.UUID `db:"id"`
 	SellerID  uuid.UUID `db:"seller_id"`
 	Price     float64   `db:"price"`

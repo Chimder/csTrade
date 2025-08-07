@@ -16,6 +16,8 @@ type EnvVars struct {
 	DeviceID       string `env:"DEVICE_ID"`
 	DBUrl          string `env:"DB_URL"`
 	Debug          bool   `env:"DEBUG"`
+	ENV            string `env:"ENV"`
+	LOG_LEVEL      string `env:"LOG_LEVEL"`
 }
 
 func LoadEnv() *EnvVars {

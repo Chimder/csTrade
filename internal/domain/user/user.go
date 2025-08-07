@@ -6,7 +6,7 @@ import (
 	"github.com/google/uuid"
 )
 
-type User struct {
+type UserDB struct {
 	ID        uuid.UUID `db:"id"`
 	SteamID   string    `db:"steam_id"`
 	Username  string    `db:"username"`
