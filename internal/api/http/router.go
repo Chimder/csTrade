@@ -1,11 +1,8 @@
 package http
 
 import (
-	"csTrade/config"
 	_ "csTrade/docs"
 	"csTrade/internal/api/middleware"
-	"csTrade/internal/domain/bots"
-	"fmt"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
@@ -25,22 +22,6 @@ func Init() *gin.Engine {
 		MaxAge:           300,
 	}))
 
-	cfg := config.LoadEnv()
-	client := bots.NewSteamClient(
-		cfg.Username,
-		cfg.Password,
-		cfg.SteamID,
-		cfg.SharedSecret,
-		cfg.IdentitySecret,
-		"",
-	)
-	err := client.Login()
-	if err != nil {
-		fmt.Printf("Login failed: %v\n", err)
-	}
-	fmt.Println("Successfully logged in to Steam!")
-	fmt.Printf("Access Token: %s\n", client.AccessToken)
-
 	{
 		r.GET("/swagger", ginSwagger.WrapHandler(swaggerfiles.Handler))
 		r.GET("/healthz", func(c *gin.Context) {
@@ -50,31 +31,33 @@ func Init() *gin.Engine {
 	}
 
 	api := r.Group("/api/v1")
-	auth := api.Group("/auth")
+
+	api.GET("/user/create", func(ctx *gin.Context) {})
+	users := api.Group("/users").Use(middleware.AuthMiddleware())
 	{
-		auth.GET("/steam", func(ctx *gin.Context) {})
-		auth.GET("/steam/callback", func(ctx *gin.Context) {})
+		users.GET("/:id")
+		users.GET("/:id/cash")
+		users.PATCH("/:id/cash")
+		users.GET("/:id/offers")
 	}
 
-	user := api.Group("/user").Use(middleware.AuthMiddleware())
+	offers := api.Group("/offers").Use(middleware.AuthMiddleware())
 	{
-		user.GET("/inventory", func(ctx *gin.Context) {})
-		user.POST("/inventory/sync", func(ctx *gin.Context) {})
+		offers.POST("create")
+		offers.GET("/:id")
+		offers.GET("")
+		offers.PATCH("/:id/price")
+		offers.DELETE("/:id")
 	}
 
-	// market := api.Group("/market")
-	// {
-	// 	market.GET("/items", func(ctx *gin.Context) {})
-	// 	market.GET("/item/:id", func(ctx *gin.Context) {})
-
-	// 	marketPrivate := market.Use(middleware.AuthMiddleware())
-	// 	{
-	// 		marketPrivate.POST("/item/sell", func(ctx *gin.Context) {})
-	// 		marketPrivate.PUT("/item/:id", func(ctx *gin.Context) {}) //change price
-	// 		marketPrivate.DELETE("/item/:id", func(ctx *gin.Context) {})
-	// 		marketPrivate.POST("/listings/:id/buy", func(ctx *gin.Context) {}) //buy
-	// 	}
-	// }
+	transaction := api.Group("/transaction").Use(middleware.AuthMiddleware())
+	{
+		transaction.POST("", func(ctx *gin.Context) {})
+		transaction.GET("/:id", func(ctx *gin.Context) {})
+		transaction.PATCH("/:id/status", func(ctx *gin.Context) {})
+		transaction.GET("/buyer/:id", func(ctx *gin.Context) {})
+		transaction.GET("/seller/:id", func(ctx *gin.Context) {})
+	}
 
 	return r
 }

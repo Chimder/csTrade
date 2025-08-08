@@ -3,6 +3,8 @@ package repository
 import (
 	"context"
 	"csTrade/internal/domain/offer"
+	"fmt"
+	"time"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -64,17 +66,45 @@ func (o *offerRepository) CreateOffer(ctx context.Context, arg offer.OfferDB) er
 	})
 	if err != nil {
 		log.Error().Err(err).Msg("CreateOffer")
-		return err
+		return fmt.Errorf("err create offer db:%w", err)
 	}
 
 	return nil
 }
 
-// func (o *offerRepository) GetOffer(ctx context.Context, name string) {
-// 	query := `SELECT * FROM "Anime" WHERE name = $1`
-// 	rows, err := o.db.Query(ctx, query, name)
-// 	if err != nil {
-// 		return models.MangaRepo{}, err
-// 	}
-// }
-// 	// return pgx.CollectOneRow(rows, pgx.RowToStructByName[models.MangaRepo])
+func (t *offerRepository) GetOfferByID(ctx context.Context, offerID string) (*offer.OfferDB, error) {
+	query := `SELECT * FROM offers WHERE id = $1`
+	rows, err := t.db.Query(ctx, query, offerID)
+
+	if err != nil {
+		return nil, fmt.Errorf("err fetch offers by offer_id %w", err)
+	}
+
+	return pgx.CollectOneRow(rows, pgx.RowToStructByName[*offer.OfferDB])
+}
+
+func (t *offerRepository) GetOfferBySellerID(ctx context.Context, sellerID string) (*offer.OfferDB, error) {
+	query := `SELECT * FROM offers WHERE seller_id = $1`
+	rows, err := t.db.Query(ctx, query, sellerID)
+	if err != nil {
+		return nil, fmt.Errorf("err fetch offers by seller_id %w", err)
+	}
+
+	return pgx.CollectOneRow(rows, pgx.RowToStructByName[*offer.OfferDB])
+}
+
+func (t *offerRepository) UpdateOfferReservedStatus(ctx context.Context, offerID string, reservedTime time.Time) error {
+
+	query := `UPDATE offers SET reserved_until = $1 WHERE id = $2`
+	_, err := t.db.Exec(ctx, query, reservedTime, offerID)
+
+	return err
+}
+
+func (t *offerRepository) DeleteOfferByID(ctx context.Context, offerID string) error {
+
+	query := `DELETE FROM offers WHERE id = $1`
+	_, err := t.db.Exec(ctx, query, offerID)
+
+	return err
+}

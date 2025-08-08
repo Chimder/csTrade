@@ -6,18 +6,12 @@ import (
 	"github.com/google/uuid"
 )
 
-type TransactionStatus string
-
-const (
-	TransactionCompleted TransactionStatus = "completed"
-	TransactionFailed    TransactionStatus = "failed"
-)
-
 type TransactionDB struct {
 	ID        uuid.UUID         `db:"id"`
 	OfferID   uuid.UUID         `db:"offer_id"`
 	SellerID  uuid.UUID         `db:"seller_id"`
 	BuyerID   uuid.UUID         `db:"buyer_id"`
+	BotID     uuid.UUID         `db:"bot_id"`
 	Status    TransactionStatus `db:"status"`
 	Price     float64           `db:"price"`
 	CreatedAt time.Time         `db:"created_at"`
@@ -36,4 +30,19 @@ type TransactionDB struct {
 	TagRarity         string `db:"tag_rarity"`
 	TagExterior       string `db:"tag_exterior"`
 	TagRarityColor    string `db:"tag_rarity_color"`
+}
+
+type TransactionStatus string
+
+const (
+	TransactionCompleted TransactionStatus = "completed"
+	TransactionFailed    TransactionStatus = "failed"
+)
+
+func (s TransactionStatus) IsValid() bool {
+	switch s {
+	case TransactionCompleted, TransactionFailed:
+		return true
+	}
+	return false
 }

@@ -9,6 +9,7 @@ import (
 type OfferDB struct {
 	ID        uuid.UUID `db:"id"`
 	SellerID  uuid.UUID `db:"seller_id"`
+	BotID     uuid.UUID `db:"bot_id"`
 	Price     float64   `db:"price"`
 	CreatedAt time.Time `db:"created_at"`
 	UpdatedAt time.Time `db:"updated_at"`
