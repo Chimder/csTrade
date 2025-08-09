@@ -18,6 +18,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/rs/zerolog/log"
 )
 
 const (
@@ -86,6 +88,144 @@ func NewSteamClient(username, password, steamID, sharedSecret, identitySecret, d
 			},
 		},
 	}
+}
+
+type Asset struct {
+	AppID      int    `json:"appid"`
+	ContextID  string `json:"contextid"`
+	AssetID    string `json:"assetid"`
+	Amount     int    `json:"amount"`
+	ClassID    string `json:"classid,omitempty"`
+	InstanceID string `json:"instanceid,omitempty"`
+}
+
+func (sc *SteamBot) getSessionID() string {
+	u, _ := url.Parse(SteamCommunityURL)
+	if sc.Client == nil || sc.Client.Jar == nil {
+		return ""
+	}
+	for _, c := range sc.Client.Jar.Cookies(u) {
+		if c.Name == "sessionid" {
+			return c.Value
+		}
+	}
+	return ""
+}
+func toJSON(v interface{}) string {
+	b, _ := json.Marshal(v)
+	return string(b)
+}
+
+func parseTradeURL(tradeURL string) (partnerID, token string, err error) {
+	u, err := url.Parse(tradeURL)
+	if err != nil {
+		return "", "", err
+	}
+	q := u.Query()
+	partnerID = q.Get("partner")
+	token = q.Get("token")
+	if partnerID == "" || token == "" {
+		return "", "", fmt.Errorf("invalid tradeURL")
+	}
+	return partnerID, token, nil
+}
+
+func (sc *SteamBot) ReceiveFromUser(assetID, tradeURL string) error {
+	partner, token, err := parseTradeURL(tradeURL)
+	if err != nil {
+		return err
+	}
+	offer := map[string]interface{}{
+		"newversion": true,
+		"version":    2,
+		"me":         map[string]interface{}{"assets": []map[string]string{}},
+		"them": map[string]interface{}{"assets": []map[string]string{
+			{"appid": "730", "contextid": "2", "assetid": assetID},
+		}},
+	}
+	form := url.Values{
+		"sessionid":                 {sc.getSessionID()},
+		"serverid":                  {"1"},
+		"partner":                   {partner},
+		"tradeoffermessage":         {""},
+		"trade_offer_create_params": {fmt.Sprintf(`{"trade_offer_access_token":"%s"}`, token)},
+		"json_tradeoffer":           {toJSON(offer)},
+	}
+	req, _ := http.NewRequest("POST", "https://steamcommunity.com/tradeoffer/new/send", strings.NewReader(form.Encode()))
+	req.Header.Set("Referer", tradeURL)
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	resp, err := sc.Client.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("Err code offer FromUser: %d", resp.StatusCode)
+	}
+	return nil
+}
+
+func (sc *SteamBot) SendToBuyer(assetID, tradeURL string) error {
+	partner, token, err := parseTradeURL(tradeURL)
+	if err != nil {
+		return err
+	}
+	offer := map[string]interface{}{
+		"newversion": true,
+		"version":    2,
+		"me": map[string]interface{}{"assets": []map[string]string{
+			{"appid": "730", "contextid": "2", "assetid": assetID},
+		}},
+		"them": map[string]interface{}{"assets": []map[string]string{}},
+	}
+	form := url.Values{
+		"sessionid":                 {sc.getSessionID()},
+		"serverid":                  {"1"},
+		"partner":                   {partner},
+		"tradeoffermessage":         {""},
+		"trade_offer_create_params": {fmt.Sprintf(`{"trade_offer_access_token":"%s"}`, token)},
+		"json_tradeoffer":           {toJSON(offer)},
+	}
+	req, _ := http.NewRequest("POST", "https://steamcommunity.com/tradeoffer/new/send", strings.NewReader(form.Encode()))
+	req.Header.Set("Referer", tradeURL)
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+
+	resp, err := sc.Client.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	var res struct {
+		TradeOfferID            string `json:"tradeofferid"`
+		StrError                string `json:"strError"`
+		NeedsMobileConfirmation bool   `json:"needs_mobile_confirmation"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&res); err != nil {
+		return fmt.Errorf("err parse tradeOffer to buyer: %w", err)
+	}
+	log.Info().Interface("resp", res).Msg("To buyer")
+
+	if res.StrError != "" {
+		return fmt.Errorf("steam error: %s", res.StrError)
+	}
+
+	return nil
+}
+
+func (sc *SteamBot) DeclineTrade(tradeOfferID, apiKey string) error {
+	params := map[string]string{
+		"key":          apiKey,
+		"tradeofferid": tradeOfferID,
+	}
+	resp, err := sc.apiCall("POST", "/IEconService/DeclineTradeOffer/v1/", params)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("Err trade statusCode: %d", resp.StatusCode)
+	}
+	return nil
 }
 
 func (sc *SteamBot) apiCall(method, endpoint string, params map[string]string) (*http.Response, error) {
@@ -252,7 +392,6 @@ func (sc *SteamBot) submitTOTP(clientID string) error {
 	}
 	slog.Info("Generated TOTP", "code", code)
 
-	return nil
 	data := map[string]string{
 		"client_id": clientID,
 		"steamid":   sc.SteamID,

@@ -19,9 +19,6 @@ type OfferDB struct {
 	AssetID                   string  `db:"asset_id"`
 	ClassID                   string  `db:"class_id"`
 	InstanceID                string  `db:"instance_id"`
-	AppID                     int     `db:"app_id"`
-	ContextID                 string  `db:"context_id"`
-	Amount                    int     `db:"amount"`
 	Name                      string  `db:"name"`
 	FullName                  string  `db:"full_name"`
 	MarketTradableRestriction int     `db:"market_tradable_restriction"`

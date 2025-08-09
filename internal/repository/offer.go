@@ -29,13 +29,13 @@ func (o *offerRepository) CreateOffer(ctx context.Context, arg offer.OfferDB) er
 	query := `
 		INSERT INTO offers (
 			seller_id, price,
-			asset_id, class_id, instance_id, app_id, context_id, amount,
+			asset_id, class_id, instance_id,
 			name, full_name, market_tradable_restriction, icon_url, name_color, action_link,
 			tag_type, tag_weapon_internal, tag_weapon_name, tag_quality, tag_rarity, tag_rarity_color, tag_exterior
 		)
 		VALUES (
 			@seller_id, @price,
-			@asset_id, @class_id, @instance_id, @app_id, @context_id, @amount,
+			@asset_id, @class_id, @instance_id,
 			@name, @full_name, @market_tradable_restriction, @icon_url, @name_color, @action_link,
 			@tag_type, @tag_weapon_internal, @tag_weapon_name, @tag_quality, @tag_rarity, @tag_rarity_color, @tag_exterior
 		);
@@ -47,9 +47,6 @@ func (o *offerRepository) CreateOffer(ctx context.Context, arg offer.OfferDB) er
 		"asset_id":                    arg.AssetID,
 		"class_id":                    arg.ClassID,
 		"instance_id":                 arg.InstanceID,
-		"app_id":                      arg.AppID,
-		"context_id":                  arg.ContextID,
-		"amount":                      arg.Amount,
 		"name":                        arg.Name,
 		"full_name":                   arg.FullName,
 		"market_tradable_restriction": arg.MarketTradableRestriction,
