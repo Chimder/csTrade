@@ -10,7 +10,7 @@ import (
 type EnvVars struct {
 	Username       string `env:"USERNAME"`
 	Password       string `env:"PASSWORD"`
-	SteamID        string `env:"STREAM_ID"`
+	SteamID        string `env:"STEAM_ID"`
 	SharedSecret   string `env:"SHARED_SECRET"`
 	IdentitySecret string `env:"IDENTITY_SECRET"`
 	DeviceID       string `env:"DEVICE_ID"`

@@ -2,7 +2,10 @@ package main
 
 import (
 	"context"
+	"csTrade/db"
 	router "csTrade/internal/api/http"
+	"csTrade/internal/app/bots"
+	"csTrade/internal/repository"
 	"net/http"
 	"os"
 	"os/signal"
@@ -19,9 +22,20 @@ import (
 //	  @BasePath	/
 func main() {
 	SetupLogger()
-
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
+
+	dbconn, err := db.DBConn(ctx)
+	if err != nil {
+		log.Panic().Msg("Err conn to db")
+		return
+	}
+	repo := repository.NewRepository(dbconn)
+
+	///////////////////
+	botmanager := bots.NewBotManager(repo)
+	go botmanager.Start(ctx)
+	//////////////////////
 
 	r := router.Init()
 	srv := &http.Server{

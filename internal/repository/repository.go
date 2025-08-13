@@ -8,6 +8,7 @@ type Repository struct {
 	Offer       OfferRepository
 	User        UserRepository
 	Transaction TransactionRepository
+	Bot         BotsRepository
 }
 
 func NewRepository(db *pgxpool.Pool) *Repository {
@@ -15,5 +16,7 @@ func NewRepository(db *pgxpool.Pool) *Repository {
 		Offer:       NewOfferRepo(db),
 		User:        NewUserRepository(db),
 		Transaction: NewTransactionRepo(db),
+		Bot:         NewBotsRepo(db),
 	}
+
 }
