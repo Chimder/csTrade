@@ -4,6 +4,7 @@ import (
 	"context"
 	"csTrade/internal/domain/offer"
 	"fmt"
+	"strconv"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -12,7 +13,12 @@ import (
 )
 
 type OfferRepository interface {
-	CreateOffer(ctx context.Context, arg offer.OfferDB) error
+	CreateOffer(ctx context.Context, arg *offer.OfferCreateReq) error
+	GetOfferByID(ctx context.Context, offerID string) (*offer.OfferDB, error)
+	GetOfferBySellerID(ctx context.Context, sellerID string) (*offer.OfferDB, error)
+	AddBotSteamID(ctx context.Context, botSteamId string, offerID string) error
+	UpdateOfferReservedStatus(ctx context.Context, offerID string, reservedTime time.Time) error
+	DeleteOfferByID(ctx context.Context, offerID string) error
 }
 
 type offerRepository struct {
@@ -25,7 +31,7 @@ func NewOfferRepo(db *pgxpool.Pool) OfferRepository {
 	}
 }
 
-func (o *offerRepository) CreateOffer(ctx context.Context, arg offer.OfferDB) error {
+func (o *offerRepository) CreateOffer(ctx context.Context, arg *offer.OfferCreateReq) error {
 	query := `
 		INSERT INTO offers (
 			seller_id, price,
@@ -90,6 +96,16 @@ func (t *offerRepository) GetOfferBySellerID(ctx context.Context, sellerID strin
 	return pgx.CollectOneRow(rows, pgx.RowToStructByName[*offer.OfferDB])
 }
 
+func (t *offerRepository) AddBotSteamID(ctx context.Context, botSteamId string, offerID string) error {
+	steamIDUint, err := strconv.ParseUint(botSteamId, 10, 64)
+	if err != nil {
+		return err
+	}
+	query := `UPDATE offers SET bot_steam_id = $1 WHERE id = $2`
+	_, err = t.db.Exec(ctx, query, steamIDUint, offerID)
+
+	return err
+}
 func (t *offerRepository) UpdateOfferReservedStatus(ctx context.Context, offerID string, reservedTime time.Time) error {
 
 	query := `UPDATE offers SET reserved_until = $1 WHERE id = $2`

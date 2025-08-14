@@ -3,8 +3,7 @@
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 CREATE TABLE users (
-    id UUID PRIMARY KEY,
-    steam_id TEXT NOT NULL,
+    steam_id BIGINT NOT NULL,
     username TEXT NOT NULL,
     cash DOUBLE PRECISION NOT NULL DEFAULT 0,
     name TEXT NOT NULL,
@@ -19,7 +18,8 @@ CREATE INDEX idx_users_email ON users (email);
 
 CREATE TABLE offers (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    seller_id UUID NOT NULL REFERENCES users (id),
+    seller_id UUID NOT NULL REFERENCES users (steam_id),
+    bot_steam_id BIGINT DEFAULT 0,
     price DOUBLE PRECISION NOT NULL,
 
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),

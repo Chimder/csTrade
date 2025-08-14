@@ -11,7 +11,12 @@ import (
 )
 
 type UserRepository interface {
-	CreateUser(ctx context.Context, arg user.UserDB) error
+	CreateUser(ctx context.Context, arg *user.UserCreateReq) error
+	// GetUserByID(ctx context.Context, userID string) (*user.UserDB, error)
+	GetUserBySteamID(ctx context.Context, steamID uint64) (*user.UserDB, error)
+	GetUserCash(ctx context.Context, userID string) (float64, error)
+	GetAllUsers(ctx context.Context) ([]*user.UserDB, error)
+	UpdateUserCash(ctx context.Context, cash float64, userID string) error
 }
 
 type userRepository struct {
@@ -24,7 +29,7 @@ func NewUserRepository(db *pgxpool.Pool) UserRepository {
 	}
 }
 
-func (o *userRepository) CreateUser(ctx context.Context, arg user.UserDB) error {
+func (o *userRepository) CreateUser(ctx context.Context, arg *user.UserCreateReq) error {
 	query := `
 		INSERT INTO users (steam_id, username, email, trade_url, avatar_url)
 		VALUES (@steam_id, @username, @email, @trade_url, @avatar_url);
@@ -45,18 +50,19 @@ func (o *userRepository) CreateUser(ctx context.Context, arg user.UserDB) error 
 	return nil
 }
 
-func (t *userRepository) GetUserByID(ctx context.Context, userID string) (*user.UserDB, error) {
-	query := `SELECT * FROM users WHERE id = $1`
+// func (t *userRepository) GetUserByID(ctx context.Context, userID string) (*user.UserDB, error) {
+// 	query := `SELECT * FROM users WHERE id = $1`
 
-	rows, err := t.db.Query(ctx, query, userID)
-	if err != nil {
-		return nil, fmt.Errorf("err fetch user by id %w", err)
-	}
+// 	rows, err := t.db.Query(ctx, query, userID)
+// 	if err != nil {
+// 		return nil, fmt.Errorf("err fetch user by id %w", err)
+// 	}
 
-	return pgx.CollectOneRow(rows, pgx.RowToStructByName[*user.UserDB])
-}
+// 	return pgx.CollectOneRow(rows, pgx.RowToStructByName[*user.UserDB])
+// }
 
-func (t *userRepository) GetUserBySteamID(ctx context.Context, steamID string) (*user.UserDB, error) {
+func (t *userRepository) GetUserBySteamID(ctx context.Context, steamID uint64) (*user.UserDB, error) {
+	log.Info().Uint64("steamID", steamID).Msg("REPO USER")
 	query := `SELECT * FROM users WHERE steam_id = $1`
 
 	rows, err := t.db.Query(ctx, query, steamID)

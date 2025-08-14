@@ -13,6 +13,12 @@ import (
 
 type TransactionRepository interface {
 	CreateTransaction(ctx context.Context, arg transaction.TransactionDB) error
+	GetAllTransaction() ([]transaction.TransactionDB, error)
+	GetTransactionByOfferID(ctx context.Context) (*transaction.TransactionDB, error)
+	GetTransactionBySellerID(ctx context.Context) ([]transaction.TransactionDB, error)
+	GetTransactionByBuyerID(ctx context.Context) ([]transaction.TransactionDB, error)
+	GetTransactionByBotID(ctx context.Context) ([]transaction.TransactionDB, error)
+	UpdateTransactionStatus(ctx context.Context, status transaction.TransactionStatus, offerID uuid.UUID) error
 }
 
 type transactionRepository struct {

@@ -2,13 +2,10 @@ package user
 
 import (
 	"time"
-
-	"github.com/google/uuid"
 )
 
 type UserDB struct {
-	ID        uuid.UUID `db:"id"`
-	SteamID   string    `db:"steam_id"`
+	SteamID   uint64    `db:"steam_id"`
 	Username  string    `db:"username"`
 	Cash      float64   `db:"cash"`
 	Name      string    `db:"name"`

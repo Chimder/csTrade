@@ -1,8 +1,10 @@
-package http
+package httpgin
 
 import (
 	_ "csTrade/docs"
-	"csTrade/internal/api/middleware"
+	"csTrade/internal/handlers/middleware"
+	"csTrade/internal/repository"
+	"csTrade/internal/service"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
@@ -11,7 +13,7 @@ import (
 	ginSwagger "github.com/swaggo/gin-swagger"
 )
 
-func Init() *gin.Engine {
+func Init(repo *repository.Repository) *gin.Engine {
 	r := gin.Default()
 	r.Use(cors.New(cors.Config{
 		AllowOrigins:     []string{"https://*", "http://*"},
@@ -21,6 +23,9 @@ func Init() *gin.Engine {
 		AllowCredentials: false,
 		MaxAge:           300,
 	}))
+
+	offerServ := service.NewOfferService(repo)
+	offerHandler := NewOfferHandler(offerServ)
 
 	{
 		r.GET("/swagger", ginSwagger.WrapHandler(swaggerfiles.Handler))
@@ -41,9 +46,9 @@ func Init() *gin.Engine {
 		users.GET("/:id/offers")
 	}
 
-	offers := api.Group("/offers").Use(middleware.AuthMiddleware())
+	offers := api.Group("/offers")
 	{
-		offers.POST("create")
+		offers.POST("create", offerHandler.CreateOffer)
 		offers.GET("/:id")
 		offers.GET("")
 		offers.PATCH("/:id/price")

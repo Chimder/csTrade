@@ -1,10 +1,11 @@
-package bots
+package bot
 
 import (
 	"crypto/hmac"
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/sha1"
+	"csTrade/internal/repository"
 	"encoding/base64"
 	"encoding/binary"
 	"encoding/json"
@@ -32,16 +33,17 @@ const (
 type SteamBot struct {
 	Username       string
 	Password       string
-	SteamID        string
+	SteamID        uint64
 	SharedSecret   string
 	IdentitySecret string
 	DeviceID       string
 	AccessToken    string
+	SkinCount      int
 	RefreshToken   string
 	Client         *http.Client
 }
 
-func NewSteamClient(username, password, steamID, sharedSecret, identitySecret, deviceID string) *SteamBot {
+func NewSteamClient(b *repository.Bot) *SteamBot {
 	jar, _ := cookiejar.New(nil)
 
 	u, _ := url.Parse(SteamCommunityURL)
@@ -49,17 +51,17 @@ func NewSteamClient(username, password, steamID, sharedSecret, identitySecret, d
 		{Name: "Steam_Language", Value: "english"},
 		{Name: "timezoneOffset", Value: "0,0"},
 	})
-	if deviceID != "" && !strings.HasPrefix(deviceID, "android:") {
-		deviceID = "android:" + deviceID
+	if b.DeviceID != "" && !strings.HasPrefix(b.DeviceID, "android:") {
+		b.DeviceID = "android:" + b.DeviceID
 	}
 
 	return &SteamBot{
-		Username:       username,
-		Password:       password,
-		SteamID:        steamID,
-		SharedSecret:   sharedSecret,
-		IdentitySecret: identitySecret,
-		DeviceID:       deviceID,
+		Username:       b.Username,
+		Password:       b.Password,
+		SteamID:        b.StreamID,
+		SharedSecret:   b.SharedSecret,
+		IdentitySecret: b.IdentitySecret,
+		DeviceID:       b.DeviceID,
 		Client: &http.Client{
 			Timeout: 30 * time.Second,
 			Jar:     jar,
@@ -142,8 +144,9 @@ func (sc *SteamBot) ReceiveFromUser(assetID, tradeURL string) error {
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("Err code offer FromUser: %d", resp.StatusCode)
+		return fmt.Errorf("err code offer FromUser: %d", resp.StatusCode)
 	}
+	log.Info().Interface("RESP TRADE", resp.Body)
 	return nil
 }
 
@@ -373,7 +376,7 @@ func (sc *SteamBot) submitTOTP(clientID string) error {
 
 	data := map[string]string{
 		"client_id": clientID,
-		"steamid":   sc.SteamID,
+		"steamid":   strconv.FormatUint(sc.SteamID, 10),
 		"code":      code,
 		"code_type": "3",
 	}

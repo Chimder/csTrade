@@ -9,9 +9,9 @@ import (
 type TransactionDB struct {
 	ID        uuid.UUID         `db:"id"`
 	OfferID   uuid.UUID         `db:"offer_id"`
-	SellerID  uuid.UUID         `db:"seller_id"`
-	BuyerID   uuid.UUID         `db:"buyer_id"`
-	BotID     uuid.UUID         `db:"bot_id"`
+	SellerID  uint64            `db:"seller_id"`
+	BuyerID   uint64            `db:"buyer_id"`
+	BotID     uint64            `db:"bot_id"`
 	Status    TransactionStatus `db:"status"`
 	Price     float64           `db:"price"`
 	CreatedAt time.Time         `db:"created_at"`

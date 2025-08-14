@@ -11,8 +11,9 @@ import (
 type Bot struct {
 	Username       string
 	Password       string
-	StreamID       string
+	StreamID       uint64
 	SharedSecret   string
+	SkinCount      int
 	IdentitySecret string
 	DeviceID       string
 }

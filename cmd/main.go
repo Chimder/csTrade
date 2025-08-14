@@ -3,9 +3,9 @@ package main
 import (
 	"context"
 	"csTrade/db"
-	router "csTrade/internal/api/http"
-	"csTrade/internal/app/bots"
+	"csTrade/internal/handlers/httpgin"
 	"csTrade/internal/repository"
+	"csTrade/internal/service/bots"
 	"net/http"
 	"os"
 	"os/signal"
@@ -34,10 +34,10 @@ func main() {
 
 	///////////////////
 	botmanager := bots.NewBotManager(repo)
-	go botmanager.Start(ctx)
+	go botmanager.InitBots(ctx)
 	//////////////////////
 
-	r := router.Init()
+	r := httpgin.Init(repo)
 	srv := &http.Server{
 		Addr:         ":8080",
 		Handler:      r,
