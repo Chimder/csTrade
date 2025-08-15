@@ -10,13 +10,13 @@ import (
 )
 
 type OfferService struct {
-	repo    *repository.Repository
-	botsMgr *bots.BotManager
+	repo        *repository.Repository
+	botsManager *bots.BotManager
 	// rdb  *redis.Client
 }
 
-func NewOfferService(repo *repository.Repository) *OfferService {
-	return &OfferService{repo: repo}
+func NewOfferService(repo *repository.Repository, botsManager *bots.BotManager) *OfferService {
+	return &OfferService{repo: repo, botsManager: botsManager}
 }
 
 func (of *OfferService) CreateOffer(ctx context.Context, offer *offer.OfferCreateReq) error {
@@ -26,12 +26,22 @@ func (of *OfferService) CreateOffer(ctx context.Context, offer *offer.OfferCreat
 		return err
 	}
 
-	bot := of.botsMgr.GetEmptierBot()
+	log.Info().Msg("start get bot")
+	bot, err := of.botsManager.GetEmptierBot()
+	if err != nil {
+		return err
+	}
 
 	offer.BotSteamID = bot.SteamID
 	err = of.repo.Offer.CreateOffer(ctx, offer)
+	if err != nil {
+		return err
+	}
 
-	bot.ReceiveFromUser(offer.AssetID, user.TradeUrl)
+	err = bot.ReceiveFromUser(offer.AssetID, user.TradeUrl)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }

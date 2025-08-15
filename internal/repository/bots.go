@@ -9,13 +9,13 @@ import (
 )
 
 type Bot struct {
-	Username       string
-	Password       string
-	StreamID       uint64
-	SharedSecret   string
-	SkinCount      int
-	IdentitySecret string
-	DeviceID       string
+	Username       string `db:"username"`
+	Password       string `db:"password"`
+	SteamID        string `db:"steam_id"`
+	SharedSecret   string `db:"shared_secret"`
+	SkinCount      int    `db:"skin_count"`
+	IdentitySecret string `db:"identity_secret"`
+	DeviceID       string `db:"device_id"`
 }
 
 type BotsRepository interface {

@@ -3,9 +3,9 @@
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 CREATE TABLE users (
-    steam_id BIGINT NOT NULL,
+    steam_id TEXT PRIMARY KEY,
     username TEXT NOT NULL,
-    cash DOUBLE PRECISION NOT NULL DEFAULT 0,
+    cash NUMERIC(10, 2) NOT NULL DEFAULT 0.00,
     name TEXT NOT NULL,
     email TEXT NOT NULL,
     trade_url TEXT NOT NULL,
@@ -18,8 +18,8 @@ CREATE INDEX idx_users_email ON users (email);
 
 CREATE TABLE offers (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    seller_id UUID NOT NULL REFERENCES users (steam_id),
-    bot_steam_id BIGINT DEFAULT 0,
+    seller_id TEXT REFERENCES users (steam_id),
+    bot_steam_id TEXT DEFAULT 0,
     price DOUBLE PRECISION NOT NULL,
 
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
@@ -53,10 +53,10 @@ CREATE INDEX idx_offers_reserved_until ON offers (reserved_until);
 
 CREATE TYPE transaction_status AS ENUM ('completed', 'failed');
 CREATE TABLE transactions (
-    id UUID PRIMARY KEY,
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     offer_id UUID NOT NULL REFERENCES offers (id),
-    seller_id UUID NOT NULL,
-    buyer_id UUID NOT NULL,
+    seller_id TEXT NOT NULL,
+    buyer_id TEXT NOT NULL,
     status transaction_status NOT NULL,
     price DOUBLE PRECISION NOT NULL,
     created_at TIMESTAMPTZ NOT NULL,

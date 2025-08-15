@@ -34,10 +34,10 @@ func main() {
 
 	///////////////////
 	botmanager := bots.NewBotManager(repo)
-	go botmanager.InitBots(ctx)
+	botmanager.InitBots(ctx)
 	//////////////////////
 
-	r := httpgin.Init(repo)
+	r := httpgin.Init(repo,botmanager)
 	srv := &http.Server{
 		Addr:         ":8080",
 		Handler:      r,
@@ -48,7 +48,7 @@ func main() {
 
 	go func() {
 		if err := srv.ListenAndServe(); err != nil {
-			log.Fatal().Err(err).Msg("Server error")
+			log.Error().Err(err).Msg("Server error")
 		}
 	}()
 

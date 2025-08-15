@@ -1,7 +1,7 @@
 -- +goose Up
 -- +goose StatementBegin
 CREATE TABLE bots (
-    stream_id BIGINT NOT NULL,
+    steam_id TEXT NOT NULL,
     username TEXT NOT NULL,
     password TEXT NOT NULL,
     shared_secret TEXT NOT NULL,

@@ -5,18 +5,19 @@ import (
 	"csTrade/internal/domain/bot"
 	"csTrade/internal/repository"
 	"fmt"
-	"sync"
+
+	"github.com/rs/zerolog/log"
 )
 
 type BotManager struct {
-	Bots   map[uint64]*bot.SteamBot
+	Bots   map[string]*bot.SteamBot
 	Events chan interface{}
 	repo   *repository.Repository
 }
 
 func NewBotManager(repo *repository.Repository) *BotManager {
 	return &BotManager{
-		Bots:   make(map[uint64]*bot.SteamBot),
+		Bots:   make(map[string]*bot.SteamBot),
 		Events: make(chan interface{}),
 		repo:   repo,
 	}
@@ -36,25 +37,54 @@ type SendToBuyerEventTrade struct {
 	BotSteamID uint64
 }
 
-func (m *BotManager) InitBots(ctx context.Context) error {
+func (m *BotManager) InitBots(ctx context.Context) {
 	botDB, err := m.repo.Bot.GetBots(ctx)
 	if err != nil {
-		return fmt.Errorf("err get bots db: %w", err)
+		return
 	}
-	var wg sync.WaitGroup
+
 	for _, b := range botDB {
-		wg.Add(1)
-		go func(b repository.Bot) {
-			defer wg.Done()
-			bot := bot.NewSteamClient(&b)
-			if err := bot.Login(); err == nil {
-				m.Bots[bot.SteamID] = bot
-			}
-		}(b)
+		bot := bot.NewSteamClient(&b)
+		log.Info().Str("::", bot.SteamID).Msg("db")
+
+		if err := bot.Login(); err == nil {
+			m.Bots[bot.SteamID] = bot
+			log.Info().Str("username", bot.Username).Msg("Bot logged in")
+		} else {
+			log.Error().Err(err).Str("username", bot.Username).Msg("Failed to login bot")
+		}
 	}
-	wg.Wait()
-	return nil
+
+	log.Info().Int("total_bots", len(m.Bots)).Msg("All bots initialized")
 }
+
+// func (m *BotManager) InitBots(ctx context.Context) {
+// 	botDB, err := m.repo.Bot.GetBots(ctx)
+// 	if err != nil {
+// 		return
+// 	}
+// 	log.Info().Interface("BOT", botDB).Msg("bot from db")
+// 	var wg sync.WaitGroup
+// 	var mu sync.Mutex
+// 	for _, b := range botDB {
+// 		wg.Add(1)
+// 		go func(b repository.Bot) {
+// 			defer wg.Done()
+// 			bot := bot.NewSteamClient(&b)
+// 			log.Info().Interface("BOT NEW", bot).Msg("NEW BOT CLIENTR")
+// 			if err := bot.Login(); err == nil {
+// 				mu.Lock()
+// 				m.Bots[bot.SteamID] = bot
+// 				mu.Unlock()
+// 			} else {
+// 				log.Error().Err(err).Str("username", bot.Username).Msg("Failed to login bot")
+// 			}
+// 		}(b)
+// 	}
+
+// 	log.Info().Msg("add bots")
+// 	wg.Wait()
+// }
 
 // func (bm *BotManager) Start(ctx context.Context) {
 // 	ctx, cancel := context.WithCancel(ctx)
@@ -94,7 +124,7 @@ func (m *BotManager) InitBots(ctx context.Context) error {
 // 	}
 // }
 
-func (m *BotManager) GetBotByID(steamID uint64) *bot.SteamBot {
+func (m *BotManager) GetBotByID(steamID string) *bot.SteamBot {
 	for _, b := range m.Bots {
 		if b.SteamID == steamID {
 			return b
@@ -103,13 +133,37 @@ func (m *BotManager) GetBotByID(steamID uint64) *bot.SteamBot {
 	return nil
 }
 
-func (m *BotManager) GetEmptierBot() *bot.SteamBot {
+func (m *BotManager) GetEmptierBot() (*bot.SteamBot, error) {
+	if m == nil || len(m.Bots) == 0 {
+		return nil, fmt.Errorf("no available bot")
+	}
+
 	var emptier *bot.SteamBot
 
 	for _, v := range m.Bots {
-		if emptier == nil || v.SkinCount < emptier.SkinCount {
+		if emptier == nil {
+			log.Info().Msg("Setting first bot as emptier")
 			emptier = v
+		} else {
+			log.Info().
+				Int("current_emptier_skin_count", emptier.SkinCount).
+				Int("candidate_skin_count", v.SkinCount).
+				Msg("Comparing bots")
+
+			if v.SkinCount < emptier.SkinCount {
+				emptier = v
+			}
 		}
 	}
-	return emptier
+
+	if emptier != nil {
+		log.Info().
+			Str("selected_bot_id", emptier.SteamID).
+			Int("skin_count", emptier.SkinCount).
+			Msg("Selected emptier bot")
+	}
+
+	return emptier, nil
 }
+
+

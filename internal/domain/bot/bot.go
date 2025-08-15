@@ -11,7 +11,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log/slog"
 	"math/big"
 	"net/http"
 	"net/http/cookiejar"
@@ -33,7 +32,7 @@ const (
 type SteamBot struct {
 	Username       string
 	Password       string
-	SteamID        uint64
+	SteamID        string
 	SharedSecret   string
 	IdentitySecret string
 	DeviceID       string
@@ -58,7 +57,7 @@ func NewSteamClient(b *repository.Bot) *SteamBot {
 	return &SteamBot{
 		Username:       b.Username,
 		Password:       b.Password,
-		SteamID:        b.StreamID,
+		SteamID:        b.SteamID,
 		SharedSecret:   b.SharedSecret,
 		IdentitySecret: b.IdentitySecret,
 		DeviceID:       b.DeviceID,
@@ -115,10 +114,15 @@ func parseTradeURL(tradeURL string) (partnerID, token string, err error) {
 }
 
 func (sc *SteamBot) ReceiveFromUser(assetID, tradeURL string) error {
+	log.Info().Str("assetID", assetID).Str("tradeURL", tradeURL).Msg("RECEIVE FROM START")
+
 	partner, token, err := parseTradeURL(tradeURL)
 	if err != nil {
+		log.Error().Err(err).Str("tradeURL", tradeURL).Msg("Failed to parse trade URL")
 		return err
 	}
+	log.Info().Str("partner", partner).Str("token", token).Msg("Parsed trade URL successfully")
+
 	offer := map[string]interface{}{
 		"newversion": true,
 		"version":    2,
@@ -127,6 +131,8 @@ func (sc *SteamBot) ReceiveFromUser(assetID, tradeURL string) error {
 			{"appid": "730", "contextid": "2", "assetid": assetID},
 		}},
 	}
+	log.Debug().Str("offerJSON", toJSON(offer)).Msg("Offer payload prepared")
+
 	form := url.Values{
 		"sessionid":                 {sc.GetSessionID()},
 		"serverid":                  {"1"},
@@ -135,18 +141,37 @@ func (sc *SteamBot) ReceiveFromUser(assetID, tradeURL string) error {
 		"trade_offer_create_params": {fmt.Sprintf(`{"trade_offer_access_token":"%s"}`, token)},
 		"json_tradeoffer":           {toJSON(offer)},
 	}
-	req, _ := http.NewRequest("POST", "https://steamcommunity.com/tradeoffer/new/send", strings.NewReader(form.Encode()))
+
+	req, err := http.NewRequest("POST", "https://steamcommunity.com/tradeoffer/new/send", strings.NewReader(form.Encode()))
+	if err != nil {
+		log.Error().Err(err).Msg("Failed to create HTTP request for trade offer")
+		return err
+	}
 	req.Header.Set("Referer", tradeURL)
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+
+	log.Info().Str("sessionid", sc.GetSessionID()).Str("tradeURL", tradeURL).Msg("Sending trade offer")
+	for _, c := range sc.Client.Jar.Cookies(&url.URL{Scheme: "https", Host: "steamcommunity.com"}) {
+		log.Debug().Str("cookie", fmt.Sprintf("%+v", c)).Msg("Cookie")
+	}
+
 	resp, err := sc.Client.Do(req)
 	if err != nil {
+		log.Error().Err(err).Msg("Failed to send trade offer request")
 		return err
 	}
 	defer resp.Body.Close()
+
+	bodyBytes, _ := io.ReadAll(resp.Body)
+	bodyStr := string(bodyBytes)
+
+	log.Info().Int("statusCode", resp.StatusCode).Str("responseBody", bodyStr).Msg("Trade offer response received")
+
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("err code offer FromUser: %d", resp.StatusCode)
 	}
-	log.Info().Interface("RESP TRADE", resp.Body)
+
+	log.Info().Msg("Trade offer sent successfully to user")
 	return nil
 }
 
@@ -208,7 +233,7 @@ func (sc *SteamBot) DeclineTrade(tradeOfferID, apiKey string) error {
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("Err trade statusCode: %d", resp.StatusCode)
+		return fmt.Errorf("err trade statusCode: %d", resp.StatusCode)
 	}
 	return nil
 }
@@ -329,7 +354,7 @@ type LoginResponse struct {
 		AllowedConfirmations []struct {
 			ConfirmationType int `json:"confirmation_type"`
 		} `json:"allowed_confirmations"`
-		Steamid              string `json:"steamid"`
+		SteamID              string `json:"steamid"`
 		WeakToken            string `json:"weak_token"`
 		ExtendedErrorMessage string `json:"extended_error_message"`
 	} `json:"response"`
@@ -359,6 +384,8 @@ func (sc *SteamBot) startAuth() (*LoginResponse, error) {
 	}
 	defer resp.Body.Close()
 
+	sc.storeCookies(resp)
+
 	var loginResp LoginResponse
 	if err := json.NewDecoder(resp.Body).Decode(&loginResp); err != nil {
 		return nil, err
@@ -372,24 +399,24 @@ func (sc *SteamBot) submitTOTP(clientID string) error {
 	if err != nil {
 		return err
 	}
-	slog.Info("Generated TOTP", "code", code)
 
 	data := map[string]string{
 		"client_id": clientID,
-		"steamid":   strconv.FormatUint(sc.SteamID, 10),
+		"steamid":   sc.SteamID,
 		"code":      code,
 		"code_type": "3",
 	}
 
 	resp, err := sc.apiCall("POST", "/IAuthenticationService/UpdateAuthSessionWithSteamGuardCode/v1/", data)
 	if err != nil {
+		log.Error().Err(err).Msg("err submitTOTP resp")
 		return err
 	}
 	defer resp.Body.Close()
+	sc.storeCookies(resp)
 
 	body, _ := io.ReadAll(resp.Body)
-	slog.Debug("TOTP submit response", "status", resp.Status, "body", string(body))
-
+	log.Debug().Str("status", resp.Status).Str("body", string(body)).Msg("TOTP submit response")
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("TOTP failed status: %d", resp.StatusCode)
 	}
@@ -407,6 +434,7 @@ func (sc *SteamBot) getTokens(clientID, requestID string) error {
 		return err
 	}
 	defer resp.Body.Close()
+	sc.storeCookies(resp)
 
 	var result struct {
 		Response struct {
@@ -459,6 +487,8 @@ func (sc *SteamBot) GetSteamTime() (time.Time, error) {
 }
 
 func (sc *SteamBot) Login() error {
+	log.Info().Msg("Start login")
+
 	loginResp, err := sc.startAuth()
 	if err != nil {
 		return fmt.Errorf("start auth failed: %w", err)
@@ -472,8 +502,22 @@ func (sc *SteamBot) Login() error {
 		return fmt.Errorf("get tokens failed: %w", err)
 	}
 
+	req, _ := http.NewRequest("GET", "https://steamcommunity.com/", nil)
+	req.Header.Set("Authorization", "Bearer "+sc.AccessToken)
+	resp, err := sc.Client.Do(req)
+	if err != nil {
+		return fmt.Errorf("failed to fetch steamcommunity: %w", err)
+	}
+	resp.Body.Close()
+
 	sc.syncCookies()
 
+	sessionID := sc.GetSessionID()
+	if sessionID == "" {
+		return fmt.Errorf("empty sessionid")
+	}
+
+	log.Info().Str(":", sessionID).Msg("Current sessionid")
 	return sc.testSession()
 }
 
@@ -498,13 +542,10 @@ func (sc *SteamBot) syncCookies() {
 		copied := []*http.Cookie{}
 
 		for _, c := range mainCookies {
-			if c.Name == "sessionid" || c.Name == "steamLoginSecure" || c.Name == "steamCountry" {
-				newC := *c
-				newC.Domain = domain
-				newC.Path = "/"
-				newC.Secure = true
-				copied = append(copied, &newC)
-			}
+			newC := *c
+			newC.Domain = domain
+			newC.Path = "/"
+			copied = append(copied, &newC)
 		}
 
 		if len(copied) > 0 {
@@ -513,6 +554,13 @@ func (sc *SteamBot) syncCookies() {
 	}
 }
 
+func (sc *SteamBot) storeCookies(resp *http.Response) {
+	if resp == nil {
+		return
+	}
+	u, _ := url.Parse("https://steamcommunity.com")
+	sc.Client.Jar.SetCookies(u, resp.Cookies())
+}
 func (sc *SteamBot) testSession() error {
 	req, _ := http.NewRequest("GET", "https://store.steampowered.com/account", nil)
 	resp, err := sc.Client.Do(req)

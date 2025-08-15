@@ -32,6 +32,7 @@ func NewOfferRepo(db *pgxpool.Pool) OfferRepository {
 }
 
 func (o *offerRepository) CreateOffer(ctx context.Context, arg *offer.OfferCreateReq) error {
+	log.Info().Msg("CREate offer DB")
 	query := `
 		INSERT INTO offers (
 			seller_id, price,

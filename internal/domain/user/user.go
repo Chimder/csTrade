@@ -5,7 +5,7 @@ import (
 )
 
 type UserDB struct {
-	SteamID   uint64    `db:"steam_id"`
+	SteamID   string    `db:"steam_id"`
 	Username  string    `db:"username"`
 	Cash      float64   `db:"cash"`
 	Name      string    `db:"name"`

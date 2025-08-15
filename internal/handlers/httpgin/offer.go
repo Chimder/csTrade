@@ -19,13 +19,13 @@ func NewOfferHandler(service *service.OfferService) *OfferHandler {
 
 func (ofh *OfferHandler) CreateOffer(c *gin.Context) {
 
-	var req *offer.OfferCreateReq
+	var req offer.OfferCreateReq
 	if err := c.BindJSON(&req); err != nil {
 		c.JSON(400, gin.H{"error": err.Error()})
 		return
 	}
 
-	err := ofh.service.CreateOffer(c.Request.Context(), req)
+	err := ofh.service.CreateOffer(c.Request.Context(), &req)
 	if err != nil {
 		c.JSON(400, gin.H{"error": err.Error()})
 		return
