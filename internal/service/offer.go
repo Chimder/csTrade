@@ -38,7 +38,7 @@ func (of *OfferService) CreateOffer(ctx context.Context, offer *offer.OfferCreat
 		return err
 	}
 
-	err = bot.ReceiveFromUser(offer.AssetID, user.TradeUrl)
+	err = bot.ReceiveFromUser(offer.AssetID, user.TradeUrl, offer.SellerID)
 	if err != nil {
 		return err
 	}
