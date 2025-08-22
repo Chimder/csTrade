@@ -127,7 +127,6 @@ func parseTradeURL(tradeURL string) (partnerID, token string, err error) {
 	return partnerID, token, nil
 }
 
-
 func (sc *SteamBot) ReceiveFromUser(assetID, tradeURL, SellerID string) error {
 	log.Info().Str("assetID", assetID).Str("tradeURL", tradeURL).Msg("RECEIVE FROM START")
 
@@ -146,11 +145,10 @@ func (sc *SteamBot) ReceiveFromUser(assetID, tradeURL, SellerID string) error {
 			{"appid": "730", "contextid": "2", "assetid": assetID},
 		}},
 	}
-	log.Debug().Str("offerJSON", toJSON(offer)).Msg("Offer payload prepared")
 
 	form := url.Values{
-		"sessionid": {sc.GetSessionID()},
-		"serverid":  {"1"},
+		"sessionid":                 {sc.GetSessionID()},
+		"serverid":                  {"1"},
 		"partner":                   {SellerID},
 		"tradeoffermessage":         {""},
 		"trade_offer_create_params": {fmt.Sprintf(`{"trade_offer_access_token":"%s"}`, token)},
@@ -159,7 +157,7 @@ func (sc *SteamBot) ReceiveFromUser(assetID, tradeURL, SellerID string) error {
 
 	req, err := http.NewRequest("POST", "https://steamcommunity.com/tradeoffer/new/send", strings.NewReader(form.Encode()))
 	if err != nil {
-		log.Error().Err(err).Msg("Failed to create HTTP request for trade offer")
+		log.Error().Err(err).Msg("err to create HTTP request for trade offer")
 		return err
 	}
 
@@ -168,41 +166,42 @@ func (sc *SteamBot) ReceiveFromUser(assetID, tradeURL, SellerID string) error {
 	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64)")
 	req.Header.Set("X-Requested-With", "XMLHttpRequest")
 
-
 	resp, err := sc.Client.Do(req)
 	if err != nil {
-		log.Error().Err(err).Msg("Failed to send trade offer request")
+		log.Error().Err(err).Msg("err to send trade offer request")
 		return err
 	}
 	defer resp.Body.Close()
 
 	var reader io.Reader = resp.Body
 	if resp.Header.Get("Content-Encoding") == "gzip" {
+		log.Info().Interface("response_headers", resp.Header).
+			Msg("Received response headers")
 		if gzReader, err := gzip.NewReader(resp.Body); err == nil {
 			defer gzReader.Close()
 			reader = gzReader
 		}
 	}
 
-	bodyBytes, _ := io.ReadAll(reader)
-	bodyStr := string(bodyBytes)
-
-	log.Info().Int("statusCode", resp.StatusCode).Str("responseBody", bodyStr).Msg("Trade offer response received")
-
-	if resp.StatusCode == 401 {
-		log.Warn().Msg("Got 401, trying to re-login once")
-		return fmt.Errorf("re-login failed: %w", err)
-	}
-
 	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("HTTP error %d: %s", resp.StatusCode, bodyStr)
+		return fmt.Errorf("HTTP error ReceiveFromUser %d", resp.StatusCode)
 	}
+
+	var res struct {
+		TradeOfferID string `json:"tradeofferid"`
+	}
+	bodyBytes, _ := io.ReadAll(reader)
+	if err := json.Unmarshal(bodyBytes, &res); err != nil {
+		return fmt.Errorf("failed to parse tradeofferid: %w", err)
+	}
+	log.Info().Str("id", string(bodyBytes)).
+		Msg("resp tradeofferid new trade")
 
 	return nil
 }
 
-func (sc *SteamBot) SendToBuyer(assetID, tradeURL string) error {
-	partner, token, err := parseTradeURL(tradeURL)
+func (sc *SteamBot) SendToBuyer(assetID, tradeURL, buyerID string) error {
+	_, token, err := parseTradeURL(tradeURL)
 	if err != nil {
 		return err
 	}
@@ -217,7 +216,7 @@ func (sc *SteamBot) SendToBuyer(assetID, tradeURL string) error {
 	form := url.Values{
 		"sessionid":                 {sc.GetSessionID()},
 		"serverid":                  {"1"},
-		"partner":                   {partner},
+		"partner":                   {buyerID},
 		"tradeoffermessage":         {""},
 		"trade_offer_create_params": {fmt.Sprintf(`{"trade_offer_access_token":"%s"}`, token)},
 		"json_tradeoffer":           {toJSON(offer)},
@@ -425,6 +424,7 @@ func (sc *SteamBot) submitTOTP(clientID string) error {
 	if err != nil {
 		return err
 	}
+	log.Info().Str("::::::", code).Msg("")
 
 	data := map[string]string{
 		"client_id": clientID,

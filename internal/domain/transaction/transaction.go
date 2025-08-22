@@ -39,6 +39,16 @@ const (
 	TransactionFailed    TransactionStatus = "failed"
 )
 
+func (s TransactionStatus) GetString() string {
+	switch s {
+	case TransactionFailed:
+		return string(TransactionFailed)
+	case TransactionCompleted:
+		return string(TransactionCompleted)
+	}
+	return ""
+}
+
 func (s TransactionStatus) IsValid() bool {
 	switch s {
 	case TransactionCompleted, TransactionFailed:

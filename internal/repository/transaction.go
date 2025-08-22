@@ -5,7 +5,6 @@ import (
 	"csTrade/internal/domain/transaction"
 	"fmt"
 
-	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/rs/zerolog/log"
@@ -14,11 +13,10 @@ import (
 type TransactionRepository interface {
 	CreateTransaction(ctx context.Context, arg transaction.TransactionDB) error
 	GetAllTransaction() ([]transaction.TransactionDB, error)
-	GetTransactionByOfferID(ctx context.Context) (*transaction.TransactionDB, error)
-	GetTransactionBySellerID(ctx context.Context) ([]transaction.TransactionDB, error)
-	GetTransactionByBuyerID(ctx context.Context) ([]transaction.TransactionDB, error)
-	GetTransactionByBotID(ctx context.Context) ([]transaction.TransactionDB, error)
-	UpdateTransactionStatus(ctx context.Context, status transaction.TransactionStatus, offerID uuid.UUID) error
+	GetTransactionByID(ctx context.Context, id string) (*transaction.TransactionDB, error)
+	GetTransactionBySellerID(ctx context.Context, id string) ([]transaction.TransactionDB, error)
+	GetTransactionByBuyerID(ctx context.Context, id string) ([]transaction.TransactionDB, error)
+	UpdateTransactionStatusByID(ctx context.Context, status, id string) error
 }
 
 type transactionRepository struct {
@@ -72,6 +70,18 @@ func (t *transactionRepository) CreateTransaction(ctx context.Context, arg trans
 	return nil
 }
 
+func (t *transactionRepository) GetTransactionByID(ctx context.Context, id string) (*transaction.TransactionDB, error) {
+
+	query := `SELECT * FROM transactions WHERE id = $1`
+
+	rows, err := t.db.Query(ctx, query)
+	if err != nil {
+		return nil, fmt.Errorf("err fetch transaction by id %w", err)
+	}
+
+	return pgx.CollectOneRow(rows, pgx.RowToStructByName[*transaction.TransactionDB])
+}
+
 func (t *transactionRepository) GetAllTransaction() ([]transaction.TransactionDB, error) {
 	ctx := context.Background()
 	query := `SELECT * FROM transactions`
@@ -83,21 +93,10 @@ func (t *transactionRepository) GetAllTransaction() ([]transaction.TransactionDB
 	return pgx.CollectRows(rows, pgx.RowToStructByName[transaction.TransactionDB])
 }
 
-func (t *transactionRepository) GetTransactionByOfferID(ctx context.Context) (*transaction.TransactionDB, error) {
-	query := `SELECT * FROM transactions WHERE offer_id = $1`
-
-	rows, err := t.db.Query(ctx, query)
-	if err != nil {
-		return nil, fmt.Errorf("err fetch transaction by offer_id %w", err)
-	}
-
-	return pgx.CollectOneRow(rows, pgx.RowToStructByName[*transaction.TransactionDB])
-}
-
-func (t *transactionRepository) GetTransactionBySellerID(ctx context.Context) ([]transaction.TransactionDB, error) {
+func (t *transactionRepository) GetTransactionBySellerID(ctx context.Context, id string) ([]transaction.TransactionDB, error) {
 	query := `SELECT * FROM transactions WHERE seller_id = $1`
 
-	rows, err := t.db.Query(ctx, query)
+	rows, err := t.db.Query(ctx, query, id)
 	if err != nil {
 		return nil, fmt.Errorf("err fetch transaction by seller_id %w", err)
 	}
@@ -105,10 +104,10 @@ func (t *transactionRepository) GetTransactionBySellerID(ctx context.Context) ([
 	return pgx.CollectRows(rows, pgx.RowToStructByName[transaction.TransactionDB])
 }
 
-func (t *transactionRepository) GetTransactionByBuyerID(ctx context.Context) ([]transaction.TransactionDB, error) {
+func (t *transactionRepository) GetTransactionByBuyerID(ctx context.Context, id string) ([]transaction.TransactionDB, error) {
 	query := `SELECT * FROM transactions WHERE buyer_id = $1`
 
-	rows, err := t.db.Query(ctx, query)
+	rows, err := t.db.Query(ctx, query, id)
 	if err != nil {
 		return nil, fmt.Errorf("err fetch transaction by buyer_id %w", err)
 	}
@@ -116,23 +115,9 @@ func (t *transactionRepository) GetTransactionByBuyerID(ctx context.Context) ([]
 	return pgx.CollectRows(rows, pgx.RowToStructByName[transaction.TransactionDB])
 }
 
-func (t *transactionRepository) GetTransactionByBotID(ctx context.Context) ([]transaction.TransactionDB, error) {
-	query := `SELECT * FROM transactions WHERE bot_id = $1`
-
-	rows, err := t.db.Query(ctx, query)
-	if err != nil {
-		return nil, fmt.Errorf("err fetch transaction by bot_id %w", err)
-	}
-
-	return pgx.CollectRows(rows, pgx.RowToStructByName[transaction.TransactionDB])
-}
-
-func (t *transactionRepository) UpdateTransactionStatus(ctx context.Context, status transaction.TransactionStatus, offerID uuid.UUID) error {
-	if !status.IsValid() {
-		return fmt.Errorf("invalid transaction status: %s", status)
-	}
-
-	query := `UPDATE transactions SET status = $1 WHERE offer_id = $2`
-	_, err := t.db.Exec(ctx, query, status, offerID)
+func (t *transactionRepository) UpdateTransactionStatusByID(ctx context.Context, status, id string) error {
+	query := `UPDATE transactions SET status = $1 WHERE id = $2`
+	_, err := t.db.Exec(ctx, query, status, id)
 	return err
+
 }

@@ -3,8 +3,10 @@ package service
 import (
 	"context"
 	"csTrade/internal/domain/offer"
+	"csTrade/internal/domain/transaction"
 	"csTrade/internal/repository"
 	"csTrade/internal/service/bots"
+	"fmt"
 
 	"github.com/rs/zerolog/log"
 )
@@ -19,7 +21,7 @@ func NewOfferService(repo *repository.Repository, botsManager *bots.BotManager) 
 	return &OfferService{repo: repo, botsManager: botsManager}
 }
 
-func (of *OfferService) CreateOffer(ctx context.Context, offer *offer.OfferCreateReq) error {
+func (of *OfferService) ReceiveFromUserOffer(ctx context.Context, offer *offer.OfferCreateReq) error {
 	log.Info().Msg("createOffer")
 	user, err := of.repo.User.GetUserBySteamID(ctx, offer.SellerID)
 	if err != nil {
@@ -45,7 +47,50 @@ func (of *OfferService) CreateOffer(ctx context.Context, offer *offer.OfferCreat
 
 	return nil
 }
+func (of *OfferService) SendToBuyerOffer(ctx context.Context, offer *offer.OfferCreateReq) error {
+	log.Info().Msg("sendToBuyerOffer")
+	user, err := of.repo.User.GetUserBySteamID(ctx, offer.SellerID)
+	if err != nil {
+		return err
+	}
 
-// func (s *MangaService) ListMangas(ctx context.Context) ([]byte, error) {
+	bot := of.botsManager.GetBotByID(offer.BotSteamID)
+	if bot == nil {
+		return fmt.Errorf("err get bot by id")
+	}
 
-// }
+	offer.BotSteamID = bot.SteamID
+	err = of.repo.Transaction.CreateTransaction(ctx, transaction.TransactionDB{})
+	if err != nil {
+		return err
+	}
+
+	err = bot.ReceiveFromUser(offer.AssetID, user.TradeUrl, offer.SellerID)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (of *OfferService) GetAllOffers(ctx context.Context) ([]offer.OfferDB, error) {
+	return of.repo.Offer.GetAll(ctx)
+}
+
+func (of *OfferService) GetByID(ctx context.Context, offerID string) (*offer.OfferDB, error) {
+	return of.repo.Offer.GetByID(ctx, offerID)
+}
+
+func (of *OfferService) GetUserOffers(ctx context.Context, id string) ([]offer.OfferDB, error) {
+
+	return of.repo.Offer.GetOfferBySellerID(ctx, id)
+}
+
+func (of *OfferService) ChangePriceByID(ctx context.Context, id string, newPrice float64) error {
+	return of.repo.Offer.ChangePriceByID(ctx, id, newPrice)
+}
+
+func (of *OfferService) DeleteByID(ctx context.Context, id string) error {
+
+	return of.repo.Offer.DeleteOfferByID(ctx, id)
+}

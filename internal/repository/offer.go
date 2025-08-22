@@ -14,10 +14,12 @@ import (
 
 type OfferRepository interface {
 	CreateOffer(ctx context.Context, arg *offer.OfferCreateReq) error
-	GetOfferByID(ctx context.Context, offerID string) (*offer.OfferDB, error)
-	GetOfferBySellerID(ctx context.Context, sellerID string) (*offer.OfferDB, error)
+	GetByID(ctx context.Context, offerID string) (*offer.OfferDB, error)
+	GetOfferBySellerID(ctx context.Context, sellerID string) ([]offer.OfferDB, error)
+	GetAll(ctx context.Context) ([]offer.OfferDB, error)
 	AddBotSteamID(ctx context.Context, botSteamId string, offerID string) error
 	UpdateOfferReservedStatus(ctx context.Context, offerID string, reservedTime time.Time) error
+	ChangePriceByID(ctx context.Context, offerID string, newPrice float64) error
 	DeleteOfferByID(ctx context.Context, offerID string) error
 }
 
@@ -76,7 +78,7 @@ func (o *offerRepository) CreateOffer(ctx context.Context, arg *offer.OfferCreat
 	return nil
 }
 
-func (t *offerRepository) GetOfferByID(ctx context.Context, offerID string) (*offer.OfferDB, error) {
+func (t *offerRepository) GetByID(ctx context.Context, offerID string) (*offer.OfferDB, error) {
 	query := `SELECT * FROM offers WHERE id = $1`
 	rows, err := t.db.Query(ctx, query, offerID)
 
@@ -87,14 +89,24 @@ func (t *offerRepository) GetOfferByID(ctx context.Context, offerID string) (*of
 	return pgx.CollectOneRow(rows, pgx.RowToStructByName[*offer.OfferDB])
 }
 
-func (t *offerRepository) GetOfferBySellerID(ctx context.Context, sellerID string) (*offer.OfferDB, error) {
+func (t *offerRepository) GetAll(ctx context.Context) ([]offer.OfferDB, error) {
+	query := `SELECT * FROM offers`
+	rows, err := t.db.Query(ctx, query)
+	if err != nil {
+		return nil, fmt.Errorf("err fetch all offers %w", err)
+	}
+
+	return pgx.CollectRows(rows, pgx.RowToStructByName[offer.OfferDB])
+}
+
+func (t *offerRepository) GetOfferBySellerID(ctx context.Context, sellerID string) ([]offer.OfferDB, error) {
 	query := `SELECT * FROM offers WHERE seller_id = $1`
 	rows, err := t.db.Query(ctx, query, sellerID)
 	if err != nil {
 		return nil, fmt.Errorf("err fetch offers by seller_id %w", err)
 	}
 
-	return pgx.CollectOneRow(rows, pgx.RowToStructByName[*offer.OfferDB])
+	return pgx.CollectRows(rows, pgx.RowToStructByName[offer.OfferDB])
 }
 
 func (t *offerRepository) AddBotSteamID(ctx context.Context, botSteamId string, offerID string) error {
@@ -115,6 +127,12 @@ func (t *offerRepository) UpdateOfferReservedStatus(ctx context.Context, offerID
 	return err
 }
 
+func (t *offerRepository) ChangePriceByID(ctx context.Context, offerID string, newPrice float64) error {
+	query := `UPDATE offers SET price = $1 WHERE id = $2`
+	_, err := t.db.Exec(ctx, query, newPrice, offerID)
+
+	return err
+}
 func (t *offerRepository) DeleteOfferByID(ctx context.Context, offerID string) error {
 
 	query := `DELETE FROM offers WHERE id = $1`

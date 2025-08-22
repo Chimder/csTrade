@@ -23,3 +23,14 @@ type OfferCreateReq struct {
 	TagRarityColor            string  `json:"tag_rarity_color"`
 	TagExterior               string  `json:"tag_exterior"`
 }
+
+type OfferToBuyerReq struct {
+	SellerID   string  `json:"seller_id"`
+	BotSteamID string  `json:"bot_steam_id"`
+	Price      float64 `json:"price"`
+
+	AssetID    string `json:"asset_id"`
+	ClassID    string `json:"class_id"`
+	InstanceID string `json:"instance_id"`
+
+}

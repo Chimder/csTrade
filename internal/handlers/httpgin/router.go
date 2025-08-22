@@ -25,10 +25,14 @@ func Init(repo *repository.Repository, botmanager *bots.BotManager) *gin.Engine 
 		MaxAge:           300,
 	}))
 
-	offerServ := service.NewOfferService(repo,botmanager)
+	offerServ := service.NewOfferService(repo, botmanager)
 	offerHandler := NewOfferHandler(offerServ)
+
 	userServ := service.NewUserService(repo)
 	userHandler := NewUserHandler(userServ)
+
+	transactionServ := service.NewTransactionService(repo)
+	transactionHandler := NewTransactionHandler(transactionServ)
 
 	{
 		r.GET("/swagger", ginSwagger.WrapHandler(swaggerfiles.Handler))
@@ -41,30 +45,32 @@ func Init(repo *repository.Repository, botmanager *bots.BotManager) *gin.Engine 
 	api := r.Group("/api/v1")
 
 	api.POST("/users/create", userHandler.CreateUser)
+
 	users := api.Group("/users").Use(middleware.AuthMiddleware())
 	{
 		users.GET("/:id")
 		users.GET("/:id/cash")
 		users.PATCH("/:id/cash")
-		users.GET("/:id/offers")
 	}
 
-	offers := api.Group("/offers")
+	listings := api.Group("/market/listings")
 	{
-		offers.POST("create", offerHandler.CreateOffer)
-		offers.GET("/:id")
-		offers.GET("")
-		offers.PATCH("/:id/price")
-		offers.DELETE("/:id")
+		listings.GET("", offerHandler.GetAllOffers)
+		{
+			listings.POST("", offerHandler.ListSkin)              // sell
+			listings.POST("/:id/purchase", offerHandler.Purchase) // buy
+		}
+		listings.GET("/:id", offerHandler.GetOfferByID)
+		listings.GET("/user/:id", offerHandler.UserOffers)
+		listings.PATCH("/:id/price", offerHandler.ChangePrice)
+		listings.DELETE("/:id", offerHandler.DeleteByID)
 	}
 
 	transaction := api.Group("/transaction").Use(middleware.AuthMiddleware())
 	{
-		transaction.POST("", func(ctx *gin.Context) {})
-		transaction.GET("/:id", func(ctx *gin.Context) {})
-		transaction.PATCH("/:id/status", func(ctx *gin.Context) {})
-		transaction.GET("/buyer/:id", func(ctx *gin.Context) {})
-		transaction.GET("/seller/:id", func(ctx *gin.Context) {})
+		transaction.GET("/:id")
+		transaction.PATCH("/:id/status")
+		transaction.GET("/user/:id", transactionHandler.GetByuerTransaction)
 	}
 
 	return r
