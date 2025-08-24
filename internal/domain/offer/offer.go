@@ -7,9 +7,10 @@ import (
 )
 
 type OfferDB struct {
-	ID         uuid.UUID `db:"id"`
-	SellerID   uint64    `db:"seller_id"`
-	BotSteamID uint64    `db:"bot_steam_id"`
+	ID                uuid.UUID `db:"id"`
+	SellerID          uint64    `db:"seller_id"`
+	BotSteamID        uint64    `db:"bot_steam_id"`
+	SteamTradeOfferId string    `db:"steam_trade_offer_id"`
 
 	Price     float64   `db:"price"`
 	CreatedAt time.Time `db:"created_at"`

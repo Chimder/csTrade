@@ -13,14 +13,16 @@ import (
 )
 
 type OfferRepository interface {
-	CreateOffer(ctx context.Context, arg *offer.OfferCreateReq) error
+	CreateOffer(ctx context.Context, arg *offer.OfferCreateReq) (string, error)
 	GetByID(ctx context.Context, offerID string) (*offer.OfferDB, error)
 	GetOfferBySellerID(ctx context.Context, sellerID string) ([]offer.OfferDB, error)
 	GetAll(ctx context.Context) ([]offer.OfferDB, error)
 	AddBotSteamID(ctx context.Context, botSteamId string, offerID string) error
-	UpdateOfferReservedStatus(ctx context.Context, offerID string, reservedTime time.Time) error
+	// UpdateOfferReservedStatus(ctx context.Context, offerID string, reservedTime time.Time) error
+	UpdateOfferAfterReceive(ctx context.Context, botSteamId, steamTradeOfferId, offerID string) error
 	ChangePriceByID(ctx context.Context, offerID string, newPrice float64) error
 	DeleteOfferByID(ctx context.Context, offerID string) error
+	GetOfferBotIdBySteamOfferID(ctx context.Context, offerID string) (string, error)
 }
 
 type offerRepository struct {
@@ -33,7 +35,7 @@ func NewOfferRepo(db *pgxpool.Pool) OfferRepository {
 	}
 }
 
-func (o *offerRepository) CreateOffer(ctx context.Context, arg *offer.OfferCreateReq) error {
+func (o *offerRepository) CreateOffer(ctx context.Context, arg *offer.OfferCreateReq) (string, error) {
 	log.Info().Msg("CREate offer DB")
 	query := `
 		INSERT INTO offers (
@@ -47,10 +49,11 @@ func (o *offerRepository) CreateOffer(ctx context.Context, arg *offer.OfferCreat
 			@asset_id, @class_id, @instance_id,
 			@name, @full_name, @market_tradable_restriction, @icon_url, @name_color, @action_link,
 			@tag_type, @tag_weapon_internal, @tag_weapon_name, @tag_quality, @tag_rarity, @tag_rarity_color, @tag_exterior
-		);
+		) RETURNING id;
 	`
 
-	_, err := o.db.Exec(ctx, query, pgx.NamedArgs{
+	var id string
+	err := o.db.QueryRow(ctx, query, pgx.NamedArgs{
 		"seller_id":                   arg.SellerID,
 		"price":                       arg.Price,
 		"asset_id":                    arg.AssetID,
@@ -69,13 +72,13 @@ func (o *offerRepository) CreateOffer(ctx context.Context, arg *offer.OfferCreat
 		"tag_rarity":                  arg.TagRarity,
 		"tag_rarity_color":            arg.TagRarityColor,
 		"tag_exterior":                arg.TagExterior,
-	})
+	}).Scan(&id)
 	if err != nil {
 		log.Error().Err(err).Msg("CreateOffer")
-		return fmt.Errorf("err create offer db:%w", err)
+		return "", fmt.Errorf("err create offer db:%w", err)
 	}
 
-	return nil
+	return id, nil
 }
 
 func (t *offerRepository) GetByID(ctx context.Context, offerID string) (*offer.OfferDB, error) {
@@ -109,6 +112,25 @@ func (t *offerRepository) GetOfferBySellerID(ctx context.Context, sellerID strin
 	return pgx.CollectRows(rows, pgx.RowToStructByName[offer.OfferDB])
 }
 
+func (t *offerRepository) GetOfferBotIdBySteamOfferID(ctx context.Context, steamOfferID string) (string, error) {
+	query := `SELECT bot_steam_id FROM offers WHERE steam_trade_offer_id = $1`
+	var botSteamID string
+	err := t.db.QueryRow(ctx, query, steamOfferID).Scan(&botSteamID)
+	if err != nil {
+		return "", fmt.Errorf("err fetch bot_steam_id by steam_trade_offer_id %w", err)
+	}
+	return botSteamID, nil
+}
+
+func (t *offerRepository) UpdateOfferAfterReceive(ctx context.Context, botSteamId, steamTradeOfferId, offerID string) error {
+	reservedUntil := time.Now().UTC().Add(15 * time.Minute)
+
+	query := `UPDATE offers SET bot_steam_id = $1, reserved_until = $2, steam_trade_offer_id = $3, updated_at = now() WHERE id = $4`
+	_, err := t.db.Exec(ctx, query, botSteamId, reservedUntil, steamTradeOfferId, offerID)
+
+	return err
+}
+
 func (t *offerRepository) AddBotSteamID(ctx context.Context, botSteamId string, offerID string) error {
 	steamIDUint, err := strconv.ParseUint(botSteamId, 10, 64)
 	if err != nil {
@@ -119,6 +141,7 @@ func (t *offerRepository) AddBotSteamID(ctx context.Context, botSteamId string, 
 
 	return err
 }
+
 func (t *offerRepository) UpdateOfferReservedStatus(ctx context.Context, offerID string, reservedTime time.Time) error {
 
 	query := `UPDATE offers SET reserved_until = $1 WHERE id = $2`

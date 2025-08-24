@@ -21,7 +21,7 @@ CREATE TABLE offers (
     seller_id TEXT REFERENCES users (steam_id),
     bot_steam_id TEXT DEFAULT 0,
     price DOUBLE PRECISION NOT NULL,
-
+    steam_trade_offer_id TEXT,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
 

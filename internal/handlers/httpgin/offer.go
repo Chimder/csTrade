@@ -73,6 +73,17 @@ func (ofh *OfferHandler) GetAllOffers(c *gin.Context) {
 
 	c.JSON(http.StatusOK, data)
 }
+func (ofh *OfferHandler) CancelTrade(c *gin.Context) {
+	steamOfferID := c.Query("id")
+
+	err := ofh.service.CancelTrade(c.Request.Context(), steamOfferID)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(200, gin.H{"message": "ok"})
+}
 
 func (ofh *OfferHandler) ChangePrice(c *gin.Context) {
 	id := c.Param("id")

@@ -56,12 +56,11 @@ func Init(repo *repository.Repository, botmanager *bots.BotManager) *gin.Engine 
 	listings := api.Group("/market/listings")
 	{
 		listings.GET("", offerHandler.GetAllOffers)
-		{
-			listings.POST("", offerHandler.ListSkin)              // sell
-			listings.POST("/:id/purchase", offerHandler.Purchase) // buy
-		}
+		listings.POST("", offerHandler.ListSkin)              // sell
+		listings.POST("/:id/purchase", offerHandler.Purchase) // buy
 		listings.GET("/:id", offerHandler.GetOfferByID)
 		listings.GET("/user/:id", offerHandler.UserOffers)
+		listings.POST("/cancel", offerHandler.CancelTrade)
 		listings.PATCH("/:id/price", offerHandler.ChangePrice)
 		listings.DELETE("/:id", offerHandler.DeleteByID)
 	}
