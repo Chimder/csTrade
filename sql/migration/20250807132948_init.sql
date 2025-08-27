@@ -16,15 +16,17 @@ CREATE TABLE users (
 CREATE INDEX idx_users_steam_id ON users (steam_id);
 CREATE INDEX idx_users_email ON users (email);
 
+CREATE TYPE offer_status AS ENUM ('onsale', 'reserved', 'sold', 'canceled');
 CREATE TABLE offers (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     seller_id TEXT REFERENCES users (steam_id),
     bot_steam_id TEXT DEFAULT 0,
     price DOUBLE PRECISION NOT NULL,
-    steam_trade_offer_id TEXT,
+    steam_trade_id TEXT,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
 
+    status offer_status NOT NULL DEFAULT 'onsale',
     reserved_until TIMESTAMPTZ,
 
     asset_id TEXT NOT NULL,
@@ -48,7 +50,9 @@ CREATE TABLE offers (
 
 CREATE INDEX idx_offers_seller_id ON offers (seller_id);
 CREATE INDEX idx_offers_asset_id ON offers (asset_id);
-CREATE INDEX idx_offers_reserved_until ON offers (reserved_until);
+CREATE INDEX idx_offers_status ON offers (status);
+CREATE INDEX idx_steam_trade_id ON offers (steam_trade_id);
+-- CREATE INDEX idx_offers_reserved_until ON offers (reserved_until);
 
 
 CREATE TYPE transaction_status AS ENUM ('completed', 'failed');
@@ -89,5 +93,6 @@ CREATE INDEX idx_transactions_status ON transactions (status);
 DROP TABLE IF EXISTS transactions;
 DROP TABLE IF EXISTS offers;
 DROP TABLE IF EXISTS users;
+DROP TYPE IF EXISTS offer_status;
 DROP TYPE IF EXISTS transaction_status;
 -- +goose StatementEnd

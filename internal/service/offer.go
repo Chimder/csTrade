@@ -21,31 +21,30 @@ func NewOfferService(repo *repository.Repository, botsManager *bots.BotManager) 
 	return &OfferService{repo: repo, botsManager: botsManager}
 }
 
-func (of *OfferService) ReceiveFromUserOffer(ctx context.Context, offer *offer.OfferCreateReq) error {
+func (of *OfferService) ReceiveFromUserOffer(ctx context.Context, offerData *offer.OfferCreateReq) error {
 	log.Info().Msg("createOffer")
-	user, err := of.repo.User.GetUserBySteamID(ctx, offer.SellerID)
-	if err != nil {
-		return err
-	}
-
-	log.Info().Msg("start get bot")
 	bot, err := of.botsManager.GetEmptierBot()
 	if err != nil {
 		return err
 	}
 
-	offer.BotSteamID = bot.SteamID
-	offerId, err := of.repo.Offer.CreateOffer(ctx, offer)
+	user, err := of.repo.User.GetUserBySteamID(ctx, offerData.SellerID)
+	if err != nil {
+		return err
+	}
+
+	offerData.BotSteamID = bot.SteamID
+	offerId, err := of.repo.Offer.CreateOffer(ctx, offerData)
 	if offerId == "" {
 		return err
 	}
 
-	steamOfferId, err := bot.ReceiveFromUser(offer.AssetID, user.TradeUrl, offer.SellerID)
+	steamTradeId, err := bot.ReceiveFromUser(offerData.AssetID, user.TradeUrl, offerData.SellerID)
 	if offerId == "" {
 		return err
 	}
 
-	err = of.repo.Offer.UpdateOfferAfterReceive(ctx, bot.SteamID, steamOfferId, offerId)
+	err = of.repo.Offer.UpdateOfferAfterReceive(ctx, bot.SteamID, steamTradeId, offerId)
 	if err != nil {
 		return err
 	}
@@ -54,17 +53,31 @@ func (of *OfferService) ReceiveFromUserOffer(ctx context.Context, offer *offer.O
 }
 
 func (of *OfferService) CancelTrade(ctx context.Context, steamTradeOfferId string) error {
-	botId, err := of.repo.Offer.GetOfferBotIdBySteamOfferID(ctx, steamTradeOfferId)
+	offerData, err := of.repo.Offer.GetOfferBySteamOfferID(ctx, steamTradeOfferId)
 	if err != nil {
+		log.Error().Err(err).Msg("err get offerBotId by steamOfferI")
 		return fmt.Errorf("err get offerBotId by steamOfferId: %w", err)
 	}
 
-	bot := of.botsManager.GetBotByID(botId)
+
+	bot := of.botsManager.GetBotByID(offerData.BotSteamID)
 	if bot == nil {
+		log.Error().Err(err).Msg("err get bot by id")
 		return fmt.Errorf("err get bot by id")
 	}
 
-	return bot.DeclineTrade(steamTradeOfferId)
+	err = bot.DeclineTrade(steamTradeOfferId)
+	if err != nil {
+		log.Error().Err(err).Msg("err cancel trade")
+		return fmt.Errorf("err cancel trade %w", err)
+	}
+
+	err = of.repo.Offer.ChangeStatusByID(ctx, offer.OfferCanceled.String(), offerData.ID.String())
+	if err != nil {
+		log.Error().Err(err).Msg("err change trade statu")
+		return fmt.Errorf("err change trade status %w", err)
+	}
+	return nil
 }
 
 func (of *OfferService) SendToBuyerOffer(ctx context.Context, offer *offer.OfferCreateReq) error {
@@ -110,7 +123,19 @@ func (of *OfferService) ChangePriceByID(ctx context.Context, id string, newPrice
 	return of.repo.Offer.ChangePriceByID(ctx, id, newPrice)
 }
 
-func (of *OfferService) DeleteByID(ctx context.Context, id string) error {
+func (of *OfferService) ChangeStatusByID(ctx context.Context, newStatus offer.OfferStatus, offerId string) error {
+	if !newStatus.IsValid() {
+		return fmt.Errorf("offer status is not valid")
+	}
 
-	return of.repo.Offer.DeleteOfferByID(ctx, id)
+	err := of.repo.Offer.ChangeStatusByID(ctx, newStatus.String(), offerId)
+	if err != nil {
+		return fmt.Errorf("err change offer status %w", err)
+	}
+
+	return err
+}
+
+func (of *OfferService) DeleteByID(ctx context.Context, offerId string) error {
+	return of.repo.Offer.DeleteOfferByID(ctx, offerId)
 }

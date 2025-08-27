@@ -1,22 +1,24 @@
 package offer
 
 import (
+	"slices"
 	"time"
 
 	"github.com/google/uuid"
 )
 
 type OfferDB struct {
-	ID                uuid.UUID `db:"id"`
-	SellerID          uint64    `db:"seller_id"`
-	BotSteamID        uint64    `db:"bot_steam_id"`
-	SteamTradeOfferId string    `db:"steam_trade_offer_id"`
+	ID           uuid.UUID `db:"id"`
+	SellerID     string    `db:"seller_id"`
+	BotSteamID   string    `db:"bot_steam_id"`
+	SteamTradeId string    `db:"steam_trade_id"`
+	Price        float64   `db:"price"`
 
-	Price     float64   `db:"price"`
+	Status        OfferStatus `db:"status"`
+	ReservedUntil *time.Time  `db:"reserved_until"`
+
 	CreatedAt time.Time `db:"created_at"`
 	UpdatedAt time.Time `db:"updated_at"`
-
-	ReservedUntil *time.Time `db:"reserved_until"`
 
 	AssetID                   string  `db:"asset_id"`
 	ClassID                   string  `db:"class_id"`
@@ -34,4 +36,28 @@ type OfferDB struct {
 	TagRarity                 string  `db:"tag_rarity"`
 	TagRarityColor            string  `db:"tag_rarity_color"`
 	TagExterior               string  `db:"tag_exterior"`
+}
+
+type OfferStatus string
+
+const (
+	OfferOnSale   OfferStatus = "onsale"
+	OfferReserved OfferStatus = "reserved"
+	OfferSold     OfferStatus = "sold"
+	OfferCanceled OfferStatus = "canceled"
+)
+
+var AllOfferStatuses = []OfferStatus{
+	OfferOnSale,
+	OfferReserved,
+	OfferSold,
+	OfferCanceled,
+}
+
+func (s OfferStatus) String() string {
+	return string(s)
+}
+
+func (s OfferStatus) IsValid() bool {
+	return slices.Contains(AllOfferStatuses, s)
 }

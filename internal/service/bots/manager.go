@@ -125,6 +125,7 @@ func (m *BotManager) InitBots(ctx context.Context) {
 // }
 
 func (m *BotManager) GetBotByID(steamID string) *bot.SteamBot {
+	log.Info().Msg("start bot get")
 	for _, b := range m.Bots {
 		if b.SteamID == steamID {
 			return b
@@ -139,16 +140,11 @@ func (m *BotManager) GetEmptierBot() (*bot.SteamBot, error) {
 	}
 
 	var emptier *bot.SteamBot
-
 	for _, v := range m.Bots {
+
 		if emptier == nil {
-			log.Info().Msg("Setting first bot as emptier")
 			emptier = v
 		} else {
-			log.Info().
-				Int("current_emptier_skin_count", emptier.SkinCount).
-				Int("candidate_skin_count", v.SkinCount).
-				Msg("Comparing bots")
 
 			if v.SkinCount < emptier.SkinCount {
 				emptier = v
@@ -165,5 +161,3 @@ func (m *BotManager) GetEmptierBot() (*bot.SteamBot, error) {
 
 	return emptier, nil
 }
-
-

@@ -9,6 +9,7 @@ import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"github.com/rs/zerolog/log"
 )
 
 type OfferHandler struct {
@@ -74,8 +75,9 @@ func (ofh *OfferHandler) GetAllOffers(c *gin.Context) {
 	c.JSON(http.StatusOK, data)
 }
 func (ofh *OfferHandler) CancelTrade(c *gin.Context) {
-	steamOfferID := c.Query("id")
+	steamOfferID := c.Query("steam_id")
 
+	log.Info().Msg("start")
 	err := ofh.service.CancelTrade(c.Request.Context(), steamOfferID)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
@@ -117,13 +119,25 @@ func (ofh *OfferHandler) UserOffers(c *gin.Context) {
 }
 
 func (ofh *OfferHandler) DeleteByID(c *gin.Context) {
-	id := c.Param("id")
+	offerId := c.Param("id")
 
-	err := ofh.service.DeleteByID(c.Request.Context(), id)
+	err := ofh.service.ChangeStatusByID(c.Request.Context(), offer.OfferCanceled, offerId)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 		return
 	}
 
-	c.JSON(200, gin.H{"message": "ok"})
+	c.JSON(200, gin.H{"message": "offer deleted"})
 }
+
+// func (ofh *OfferHandler) DeleteByID(c *gin.Context) {
+// 	id := c.Param("id")
+
+// 	err := ofh.service.DeleteByID(c.Request.Context(), id)
+// 	if err != nil {
+// 		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+// 		return
+// 	}
+
+// 	c.JSON(200, gin.H{"message": "ok"})
+// }
