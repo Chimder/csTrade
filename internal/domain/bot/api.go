@@ -146,6 +146,32 @@ func (sc *SteamBot) SendToBuyer(assetID, tradeURL, buyerID string) error {
 	return nil
 }
 
+// func (sc *SteamBot) GetStatus(tradeOfferID string) error {
+// 	url := fmt.Sprintf("https://steamcommunity.com/tradeoffer/%s/?json=1", tradeOfferID)
+
+// 	resp, err := sc.apiCall("GET", url, nil)
+// 	if err != nil {
+// 		return fmt.Errorf("failed to get trade status %s: %w", tradeOfferID, err)
+// 	}
+// 	if resp.StatusCode != http.StatusOK {
+// 		return fmt.Errorf("failed to get trade status %s: unexpected status code %d", tradeOfferID, resp.StatusCode)
+// 	}
+
+// 	defer resp.Body.Close()
+
+// 	body, err := io.ReadAll(resp.Body)
+// 	if err != nil {
+// 		return fmt.Errorf("failed to read body: %w", err)
+// 	}
+
+//		log.Info().Msgf("TradeOffer %s status body: %s", tradeOfferID, string(body))
+//		return nil
+//	}
+
+func (sc *SteamBot) GetStatus(tradeOfferID string) error {
+	return nil
+}
+
 func (sc *SteamBot) DeclineTrade(tradeOfferID string) error {
 	params := map[string]string{
 		"sessionid": sc.GetSessionID(),

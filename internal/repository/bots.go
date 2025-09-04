@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type Bot struct {
@@ -23,10 +22,10 @@ type BotsRepository interface {
 }
 
 type botsRepository struct {
-	db *pgxpool.Pool
+	db Querier
 }
 
-func NewBotsRepo(db *pgxpool.Pool) BotsRepository {
+func NewBotsRepo(db Querier) BotsRepository {
 	return &botsRepository{
 		db: db,
 	}

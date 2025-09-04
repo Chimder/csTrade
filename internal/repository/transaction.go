@@ -6,7 +6,6 @@ import (
 	"fmt"
 
 	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/rs/zerolog/log"
 )
 
@@ -20,10 +19,10 @@ type TransactionRepository interface {
 }
 
 type transactionRepository struct {
-	db *pgxpool.Pool
+	db Querier
 }
 
-func NewTransactionRepo(db *pgxpool.Pool) TransactionRepository {
+func NewTransactionRepo(db Querier) TransactionRepository {
 	return &transactionRepository{
 		db: db,
 	}
@@ -43,11 +42,11 @@ func (t *transactionRepository) CreateTransaction(ctx context.Context, arg trans
 	`
 
 	_, err := t.db.Exec(ctx, query, pgx.NamedArgs{
-		"offer_id":                    arg.OfferID,
-		"seller_id":                   arg.SellerID,
-		"buyer_id":                    arg.BuyerID,
-		"status":                      arg.Status,
-		"price":                       arg.Price,
+		"offer_id":  arg.OfferID,
+		"seller_id": arg.SellerID,
+		"buyer_id":  arg.BuyerID,
+		"status":    arg.Status,
+		"price":     arg.Price,
 		// "name":                        arg.Name,
 		// "full_name":                   arg.FullName,
 		// "market_tradable_restriction": arg.MarketTradableRestriction,

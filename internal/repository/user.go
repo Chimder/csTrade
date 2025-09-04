@@ -6,24 +6,28 @@ import (
 	"fmt"
 
 	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/rs/zerolog/log"
 )
 
 type UserRepository interface {
 	CreateUser(ctx context.Context, arg *user.UserCreateReq) error
-	// GetUserByID(ctx context.Context, userID string) (*user.UserDB, error)
-	GetUserBySteamID(ctx context.Context, steamID string) (*user.UserDB, error)
+
+	GetUserBySteamId(ctx context.Context, steamID string) (*user.UserDB, error)
+	GetUserBySteamIdForUpdate(ctx context.Context, steamID string) (*user.UserDB, error)
+
 	GetUserCash(ctx context.Context, userID string) (float64, error)
+	GetUserCashForUpdate(ctx context.Context, userID string) (float64, error)
+
 	GetAllUsers(ctx context.Context) ([]*user.UserDB, error)
+
 	UpdateUserCash(ctx context.Context, cash float64, userID string) error
 }
 
 type userRepository struct {
-	db *pgxpool.Pool
+	db Querier
 }
 
-func NewUserRepository(db *pgxpool.Pool) UserRepository {
+func NewUserRepository(db Querier) UserRepository {
 	return &userRepository{
 		db: db,
 	}
@@ -52,20 +56,22 @@ func (o *userRepository) CreateUser(ctx context.Context, arg *user.UserCreateReq
 	return nil
 }
 
-// func (t *userRepository) GetUserByID(ctx context.Context, userID string) (*user.UserDB, error) {
-// 	query := `SELECT * FROM users WHERE id = $1`
-
-// 	rows, err := t.db.Query(ctx, query, userID)
-// 	if err != nil {
-// 		return nil, fmt.Errorf("err fetch user by id %w", err)
-// 	}
-
-// 	return pgx.CollectOneRow(rows, pgx.RowToStructByName[*user.UserDB])
-// }
-
-func (t *userRepository) GetUserBySteamID(ctx context.Context, steamID string) (*user.UserDB, error) {
+func (t *userRepository) GetUserBySteamId(ctx context.Context, steamID string) (*user.UserDB, error) {
 	log.Info().Str("steamID", steamID).Msg("REPO USER")
 	query := `SELECT * FROM users WHERE steam_id = $1`
+
+	rows, err := t.db.Query(ctx, query, steamID)
+	if err != nil {
+		return nil, fmt.Errorf("err fetch user by steam_id %w", err)
+	}
+
+	user, err := pgx.CollectOneRow(rows, pgx.RowToStructByName[user.UserDB])
+	return &user, err
+}
+
+func (t *userRepository) GetUserBySteamIdForUpdate(ctx context.Context, steamID string) (*user.UserDB, error) {
+	log.Info().Str("steamID", steamID).Msg("REPO USER")
+	query := `SELECT * FROM users WHERE steam_id = $1 FOR UPDATE`
 
 	rows, err := t.db.Query(ctx, query, steamID)
 	if err != nil {
@@ -85,6 +91,18 @@ func (t *userRepository) GetAllUsers(ctx context.Context) ([]*user.UserDB, error
 	}
 
 	return pgx.CollectRows(rows, pgx.RowToStructByName[*user.UserDB])
+}
+
+func (t *userRepository) GetUserCashForUpdate(ctx context.Context, userID string) (float64, error) {
+	query := `SELECT cash FROM users WHERE steam_id = $1 FOR UPDATE`
+
+	var cash float64
+	err := t.db.QueryRow(ctx, query, userID).Scan(&cash)
+	if err != nil {
+		return 0, fmt.Errorf("err fetch user cash by id: %w", err)
+	}
+
+	return cash, nil
 }
 
 func (t *userRepository) GetUserCash(ctx context.Context, userID string) (float64, error) {

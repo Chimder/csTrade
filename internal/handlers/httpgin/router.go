@@ -62,6 +62,7 @@ func Init(repo *repository.Repository, botmanager *bots.BotManager) *gin.Engine 
 		listings.GET("/user/:id", offerHandler.UserOffers)
 		listings.POST("/cancel", offerHandler.CancelTrade)
 		listings.PATCH("/:id/price", offerHandler.ChangePrice)
+		// listings.GET("status", offerHandler.GetTradeStatus)
 		listings.DELETE("/:id", offerHandler.DeleteByID)
 	}
 

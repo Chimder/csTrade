@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/rs/zerolog/log"
 )
 
@@ -24,13 +23,14 @@ type OfferRepository interface {
 	DeleteOfferByID(ctx context.Context, offerID string) error
 	ChangeStatusByID(ctx context.Context, newStatus string, offerId string) error
 	GetOfferBySteamOfferID(ctx context.Context, steamTradeID string) (*offer.OfferDB, error)
+	GetOfferBySteamOfferIDForUpdate(ctx context.Context, steamTradeID string) (*offer.OfferDB, error)
 }
 
 type offerRepository struct {
-	db *pgxpool.Pool
+	db Querier
 }
 
-func NewOfferRepo(db *pgxpool.Pool) OfferRepository {
+func NewOfferRepo(db Querier) OfferRepository {
 	return &offerRepository{
 		db: db,
 	}
@@ -130,6 +130,22 @@ func (t *offerRepository) GetOfferBySteamOfferID(ctx context.Context, steamTrade
 	return &offerData, nil
 }
 
+func (t *offerRepository) GetOfferBySteamOfferIDForUpdate(ctx context.Context, steamTradeID string) (*offer.OfferDB, error) {
+	log.Info().Msg("Start get")
+	query := `SELECT * FROM offers WHERE steam_trade_id = $1 FOR UPDATE`
+
+	rows, err := t.db.Query(ctx, query, steamTradeID)
+	if err != nil {
+		return nil, fmt.Errorf("err fetch offer by steam_trade_id %w", err)
+	}
+	log.Info().Msg("end get")
+	offerData, err := pgx.CollectOneRow(rows, pgx.RowToStructByName[offer.OfferDB])
+	if err != nil {
+		return nil, fmt.Errorf("err scan offer row: %w", err)
+	}
+
+	return &offerData, nil
+}
 func (t *offerRepository) UpdateOfferAfterReceive(ctx context.Context, botSteamId, steamTradeId, offerID string) error {
 	reservedUntil := time.Now().UTC().Add(15 * time.Minute)
 
