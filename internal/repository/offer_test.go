@@ -4,18 +4,21 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"math"
+	"math/rand"
 	"sync"
 	"testing"
 
 	"csTrade/internal/domain/offer"
+	"csTrade/internal/domain/transaction"
 	"csTrade/internal/domain/user"
 
 	"github.com/brianvoe/gofakeit/v7"
 	"github.com/jackc/pgx/v5/pgxpool"
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/pressly/goose/v3"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/testcontainers/testcontainers-go/modules/postgres"
 	tcpostgres "github.com/testcontainers/testcontainers-go/modules/postgres"
 )
 
@@ -24,9 +27,9 @@ func setupTestDB(t *testing.T) *pgxpool.Pool {
 
 	pgContainer, err := tcpostgres.Run(ctx,
 		"postgres:latest",
-		postgres.WithDatabase("test"),
-		postgres.WithUsername("user"),
-		postgres.WithPassword("password"),
+		tcpostgres.WithDatabase("test"),
+		tcpostgres.WithUsername("user"),
+		tcpostgres.WithPassword("password"),
 		tcpostgres.BasicWaitStrategies(),
 	)
 	require.NoError(t, err)
@@ -50,10 +53,16 @@ func setupTestDB(t *testing.T) *pgxpool.Pool {
 	return pool
 }
 
+func RandPrice() float64 {
+	rawPrice := gofakeit.Float64Range(50, 2000)
+	price := math.Round(rawPrice*100) / 100
+	return price
+}
+
 func GetRandUser(idx int) *user.UserCreateReq {
-	userIdx := fmt.Sprintf("steam %v%s", idx, gofakeit.DigitN(6))
+	userId := fmt.Sprintf("steam_%v%s", idx, gofakeit.DigitN(6))
 	return &user.UserCreateReq{
-		SteamID:   userIdx,
+		SteamID:   userId,
 		Username:  gofakeit.Username(),
 		Email:     gofakeit.Email(),
 		Name:      gofakeit.Name(),
@@ -62,10 +71,23 @@ func GetRandUser(idx int) *user.UserCreateReq {
 	}
 }
 
+func GetRandBot(idx int) *Bot {
+	botId := fmt.Sprintf("bot_%v%s", idx, gofakeit.DigitN(6))
+	return &Bot{
+		Username:       gofakeit.Username(),
+		Password:       gofakeit.Password(true, true, true, true, true, 10),
+		SteamID:        botId,
+		SharedSecret:   gofakeit.Regex(`[A-Z0-9]{28}=`),
+		SkinCount:      gofakeit.Number(0, 10),
+		IdentitySecret: gofakeit.Email(),
+		DeviceID:       gofakeit.UUID(),
+	}
+}
+
 func GetRandOffer(id string) *offer.OfferCreateReq {
 	return &offer.OfferCreateReq{
 		SellerID:                  id,
-		Price:                     gofakeit.Price(1, 500),
+		Price:                     RandPrice(),
 		AssetID:                   gofakeit.UUID(),
 		ClassID:                   gofakeit.UUID(),
 		InstanceID:                gofakeit.UUID(),
@@ -84,87 +106,168 @@ func GetRandOffer(id string) *offer.OfferCreateReq {
 		TagExterior:               gofakeit.RandomString([]string{"FN", "MW", "FT", "WW", "BS"}),
 	}
 }
+
 func TestOfferRepository(t *testing.T) {
 	db := setupTestDB(t)
 	ctx := context.Background()
 	gofakeit.Seed(0)
 
-	// transactionRepo := NewTransactionRepo(db)
 	userRepo := NewUserRepository(db)
 	offerRepo := NewOfferRepo(db)
+	botsRepo := NewBotsRepo(db)
+	transactionRepo := NewTransactionRepo(db)
 
 	var wg sync.WaitGroup
-	for i := range 200 {
-		wg.Add(1)
-		go func(i int) {
-			defer wg.Done()
-			userErr := userRepo.CreateUser(ctx, GetRandUser(i))
-			require.NoError(t, userErr)
-		}(i)
-	}
-	wg.Wait()
+
+	t.Run("CreateBots", func(t *testing.T) {
+		for i := range 20 {
+			wg.Add(1)
+			go func(i int) {
+				defer wg.Done()
+				botErr := botsRepo.CreateBots(ctx, GetRandBot(i))
+				assert.NoError(t, botErr)
+			}(i)
+		}
+		wg.Wait()
+	})
+
+	t.Run("CreateUsers", func(t *testing.T) {
+
+		for i := range 200 {
+			wg.Add(1)
+			go func(i int) {
+				defer wg.Done()
+				userErr := userRepo.CreateUser(ctx, GetRandUser(i))
+				assert.NoError(t, userErr)
+			}(i)
+		}
+		wg.Wait()
+	})
+
+	allBots, userErr := botsRepo.GetBots(ctx)
+	require.NoError(t, userErr)
+	require.NotEmpty(t, allBots)
+	require.GreaterOrEqual(t, len(allBots), 1, "one bot")
 
 	allUsers, userErr := userRepo.GetAllUsers(ctx)
 	require.NoError(t, userErr)
 	require.NotEmpty(t, allUsers)
+	require.GreaterOrEqual(t, len(allUsers), 200, "200 users")
 
 	sellers := allUsers[:100]
 	buyers := allUsers[100:]
 
-	for i, u := range sellers {
-		wg.Add(1)
-		go func(i int, u *user.UserDB) {
-			defer wg.Done()
+	t.Run("CreateOffers", func(t *testing.T) {
 
-			userDb, userErr := userRepo.GetUserBySteamId(ctx, u.SteamID)
-			require.NoError(t, userErr)
-			require.NotEmpty(t, userDb)
+		for i, u := range sellers {
+			wg.Add(1)
+			go func(i int, u user.UserDB) {
+				defer wg.Done()
 
-			userErr = userRepo.UpdateUserCash(ctx, gofakeit.Float64(), u.SteamID)
-			require.NoError(t, userErr)
+				userDb, userErr := userRepo.GetUserBySteamId(ctx, u.SteamID)
+				assert.NoError(t, userErr)
+				assert.NotEmpty(t, userDb)
 
-			cash, err := userRepo.GetUserCash(ctx, u.SteamID)
-			require.NoError(t, userErr)
-			require.IsType(t, float64(0), cash)
-			////////////////////////////////////////////////////////////
+				userErr = userRepo.UpdateUserCash(ctx, RandPrice(), u.SteamID)
+				assert.NoError(t, userErr)
 
-			offerID, err := offerRepo.CreateOffer(ctx, GetRandOffer(u.SteamID))
-			require.NoError(t, err)
-			require.NotEmpty(t, offerID)
+				cash, err := userRepo.GetUserCash(ctx, u.SteamID)
+				assert.NoError(t, err)
+				assert.IsType(t, float64(0), cash)
 
-			got, err := offerRepo.GetByID(ctx, offerID)
-			require.NoError(t, err)
-			require.NotEmpty(t, got)
-			offerRepo.
-		}(i, u)
-	}
-	wg.Wait()
+				offerID, err := offerRepo.CreateOffer(ctx, GetRandOffer(u.SteamID))
+				assert.NoError(t, err)
+				assert.NotEmpty(t, offerID)
 
-	// err = repo.ChangePriceByID(ctx, offerID, 123.45)
-	// require.NoError(t, err)
+				got, err := offerRepo.GetByID(ctx, offerID)
+				assert.NoError(t, err)
+				assert.NotEmpty(t, got)
 
-	// updated, err := repo.GetByID(ctx, offerID)
-	// require.NoError(t, err)
-	// require.Equal(t, 123.45, updated.Price)
+				err = offerRepo.UpdateOfferAfterReceive(ctx, allBots[rand.Intn(len(allBots))].SteamID, gofakeit.UUID(), offerID)
+				assert.NoError(t, err)
 
-	// err = repo.AddBotSteamID(ctx, "987654321", offerID)
-	// require.NoError(t, err)
+				err = offerRepo.ChangePriceByID(ctx, offerID, RandPrice())
+				assert.NoError(t, err)
 
-	// afterBot, err := repo.GetByID(ctx, offerID)
-	// require.NoError(t, err)
-	// require.Equal(t, "987654321", afterBot.BotSteamID)
+				offerById, err := offerRepo.GetByID(ctx, offerID)
+				assert.NoError(t, err)
+				assert.NotEmpty(t, offerById)
 
-	// err = repo.ChangeStatusByID(ctx, "reserved", offerID)
-	// require.NoError(t, err)
+				assert.NotNil(t, offerById.SteamTradeId)
+				offerBySteamOfferID, err := offerRepo.GetOfferBySteamOfferID(ctx, *offerById.SteamTradeId)
+				assert.NoError(t, err)
+				assert.NotEmpty(t, offerBySteamOfferID)
 
-	// afterStatus, err := repo.GetByID(ctx, offerID)
-	// require.NoError(t, err)
-	// require.Equal(t, "reserved", afterStatus.Status)
+				offers, err := offerRepo.GetOfferBySellerID(ctx, u.SteamID)
+				assert.NoError(t, err)
+				assert.NotEmpty(t, offers)
+			}(i, u)
+		}
+		wg.Wait()
+	})
 
-	// err = repo.DeleteOfferByID(ctx, offerID)
-	// require.NoError(t, err)
+	offers, err := offerRepo.GetAll(ctx)
+	require.NoError(t, err)
+	require.NotEmpty(t, offers)
+	t.Run("Create transactions", func(t *testing.T) {
+		for i, ofr := range offers {
+			wg.Add(1)
+			go func(i int, ofr offer.OfferDB) {
+				defer wg.Done()
+				buyer := buyers[i]
 
-	// deleted, err := repo.GetByID(ctx, offerID)
-	// require.Error(t, err)
-	// require.Nil(t, deleted)
+				trErr := transactionRepo.CreateTransaction(ctx, transaction.TransactionDB{
+					OfferID:  ofr.ID,
+					SellerID: ofr.SellerID,
+					BuyerID:  buyer.SteamID,
+					BotID:    ofr.BotSteamID,
+					Status:   transaction.TransactionCompleted,
+					Price:    ofr.Price,
+				})
+				assert.NoError(t, trErr)
+
+				err := offerRepo.ChangeStatusByID(ctx, offer.OfferSold.String(), ofr.ID.String())
+				assert.NoError(t, err)
+
+				updOffer, err := offerRepo.GetByID(ctx, ofr.ID.String())
+				assert.NoError(t, err)
+				assert.Equal(t, offer.OfferSold, updOffer.Status)
+			}(i, ofr)
+		}
+		wg.Wait()
+	})
+
+	transactions, err := transactionRepo.GetAllTransaction()
+	require.NoError(t, err)
+	require.NotEmpty(t, transactions)
+	require.Equal(t, len(transactions), len(buyers))
+	require.Equal(t, len(transactions), len(sellers))
+
+	t.Run("TestTransactions", func(t *testing.T) {
+		for i, tr := range transactions {
+			wg.Add(1)
+			go func(i int, tr transaction.TransactionDB) {
+				defer wg.Done()
+
+				buyer := buyers[i]
+				seller := sellers[i]
+
+				transactionByID, trErr := transactionRepo.GetTransactionByID(ctx, tr.ID.String())
+				assert.NoError(t, trErr)
+				assert.NotEmpty(t, transactionByID)
+				assert.Equal(t, tr.ID, transactionByID.ID)
+
+				transactionByBuyerID, trErr := transactionRepo.GetTransactionByBuyerID(ctx, buyer.SteamID)
+				assert.NoError(t, trErr)
+				assert.NotEmpty(t, transactionByBuyerID)
+
+				transactionBySellerID, trErr := transactionRepo.GetTransactionBySellerID(ctx, seller.SteamID)
+				assert.NoError(t, trErr)
+				assert.NotEmpty(t, transactionBySellerID)
+			}(i, tr)
+		}
+
+		wg.Wait()
+	})
+	// time.Sleep(5 * time.Minute)
 }

@@ -20,7 +20,6 @@ type OfferRepository interface {
 	// UpdateOfferReservedStatus(ctx context.Context, offerID string, reservedTime time.Time) error
 	UpdateOfferAfterReceive(ctx context.Context, botSteamId, steamTradeId, offerID string) error
 	ChangePriceByID(ctx context.Context, offerID string, newPrice float64) error
-	DeleteOfferByID(ctx context.Context, offerID string) error
 	ChangeStatusByID(ctx context.Context, newStatus string, offerId string) error
 	GetOfferBySteamOfferID(ctx context.Context, steamTradeID string) (*offer.OfferDB, error)
 	GetOfferBySteamOfferIDForUpdate(ctx context.Context, steamTradeID string) (*offer.OfferDB, error)
@@ -37,7 +36,7 @@ func NewOfferRepo(db Querier) OfferRepository {
 }
 
 func (o *offerRepository) CreateOffer(ctx context.Context, arg *offer.OfferCreateReq) (string, error) {
-	log.Info().Msg("CREate offer DB")
+	// log.Info().Msg("CREate offer DB")
 	query := `
 		INSERT INTO offers (
 			seller_id, price,
@@ -87,10 +86,14 @@ func (t *offerRepository) GetByID(ctx context.Context, offerID string) (*offer.O
 	rows, err := t.db.Query(ctx, query, offerID)
 
 	if err != nil {
-		return nil, fmt.Errorf("err fetch offers by offer_id %w", err)
+		return nil, fmt.Errorf("err fetch offer by offer_id %w", err)
 	}
 
-	return pgx.CollectOneRow(rows, pgx.RowToStructByName[*offer.OfferDB])
+	offer, err := pgx.CollectOneRow(rows, pgx.RowToStructByName[offer.OfferDB])
+	if err != nil {
+		return nil, fmt.Errorf("err collect offer by offer_id %w", err)
+	}
+	return &offer, err
 }
 
 func (t *offerRepository) GetAll(ctx context.Context) ([]offer.OfferDB, error) {
@@ -114,14 +117,14 @@ func (t *offerRepository) GetOfferBySellerID(ctx context.Context, sellerID strin
 }
 
 func (t *offerRepository) GetOfferBySteamOfferID(ctx context.Context, steamTradeID string) (*offer.OfferDB, error) {
-	log.Info().Msg("Start get")
+	// log.Info().Msg("Start get")
 	query := `SELECT * FROM offers WHERE steam_trade_id = $1`
 
 	rows, err := t.db.Query(ctx, query, steamTradeID)
 	if err != nil {
 		return nil, fmt.Errorf("err fetch offer by steam_trade_id %w", err)
 	}
-	log.Info().Msg("end get")
+	// log.Info().Msg("end get")
 	offerData, err := pgx.CollectOneRow(rows, pgx.RowToStructByName[offer.OfferDB])
 	if err != nil {
 		return nil, fmt.Errorf("err scan offer row: %w", err)
@@ -184,14 +187,6 @@ func (t *offerRepository) ChangeStatusByID(ctx context.Context, newStatus string
 func (t *offerRepository) ChangePriceByID(ctx context.Context, offerID string, newPrice float64) error {
 	query := `UPDATE offers SET price = $1 WHERE id = $2`
 	_, err := t.db.Exec(ctx, query, newPrice, offerID)
-
-	return err
-}
-
-func (t *offerRepository) DeleteOfferByID(ctx context.Context, offerID string) error {
-
-	query := `DELETE FROM offers WHERE id = $1`
-	_, err := t.db.Exec(ctx, query, offerID)
 
 	return err
 }

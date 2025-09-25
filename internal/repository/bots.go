@@ -19,6 +19,7 @@ type Bot struct {
 
 type BotsRepository interface {
 	GetBots(ctx context.Context) ([]Bot, error)
+	CreateBots(ctx context.Context, arg *Bot) error
 }
 
 type botsRepository struct {
@@ -29,6 +30,31 @@ func NewBotsRepo(db Querier) BotsRepository {
 	return &botsRepository{
 		db: db,
 	}
+}
+
+func (o *botsRepository) CreateBots(ctx context.Context, arg *Bot) error {
+	query := `
+		INSERT INTO bots (
+			steam_id, username, password, shared_secret, skin_count, identity_secret, device_id
+		)
+		VALUES (
+			@steam_id, @username, @password, @shared_secret, @skin_count, @identity_secret, @device_id
+		);
+	`
+	_, err := o.db.Exec(ctx, query, pgx.NamedArgs{
+		"steam_id":        arg.SteamID,
+		"username":        arg.Username,
+		"password":        arg.Password,
+		"shared_secret":   arg.SharedSecret,
+		"skin_count":      arg.SkinCount,
+		"identity_secret": arg.IdentitySecret,
+		"device_id":       arg.DeviceID,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to exec bot : %w", err)
+	}
+
+	return nil
 }
 
 func (o *botsRepository) GetBots(ctx context.Context) ([]Bot, error) {

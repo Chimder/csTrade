@@ -166,7 +166,3 @@ func (of *OfferService) ChangeStatusByID(ctx context.Context, newStatus offer.Of
 
 	return err
 }
-
-func (of *OfferService) DeleteByID(ctx context.Context, offerId string) error {
-	return of.repo.Offer.DeleteOfferByID(ctx, offerId)
-}

@@ -11,7 +11,7 @@ type OfferDB struct {
 	ID           uuid.UUID `db:"id"`
 	SellerID     string    `db:"seller_id"`
 	BotSteamID   string    `db:"bot_steam_id"`
-	SteamTradeId string    `db:"steam_trade_id"`
+	SteamTradeId *string   `db:"steam_trade_id"`
 	Price        float64   `db:"price"`
 
 	Status        OfferStatus `db:"status"`

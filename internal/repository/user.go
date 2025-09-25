@@ -18,7 +18,7 @@ type UserRepository interface {
 	GetUserCash(ctx context.Context, userID string) (float64, error)
 	GetUserCashForUpdate(ctx context.Context, userID string) (float64, error)
 
-	GetAllUsers(ctx context.Context) ([]*user.UserDB, error)
+	GetAllUsers(ctx context.Context) ([]user.UserDB, error)
 
 	UpdateUserCash(ctx context.Context, cash float64, userID string) error
 }
@@ -57,7 +57,7 @@ func (o *userRepository) CreateUser(ctx context.Context, arg *user.UserCreateReq
 }
 
 func (t *userRepository) GetUserBySteamId(ctx context.Context, steamID string) (*user.UserDB, error) {
-	log.Info().Str("steamID", steamID).Msg("REPO USER")
+	// log.Info().Str("steamID", steamID).Msg("REPO USER")
 	query := `SELECT * FROM users WHERE steam_id = $1`
 
 	rows, err := t.db.Query(ctx, query, steamID)
@@ -82,7 +82,7 @@ func (t *userRepository) GetUserBySteamIdForUpdate(ctx context.Context, steamID 
 	return &user, err
 }
 
-func (t *userRepository) GetAllUsers(ctx context.Context) ([]*user.UserDB, error) {
+func (t *userRepository) GetAllUsers(ctx context.Context) ([]user.UserDB, error) {
 	query := `SELECT * FROM users`
 
 	rows, err := t.db.Query(ctx, query)
@@ -90,7 +90,12 @@ func (t *userRepository) GetAllUsers(ctx context.Context) ([]*user.UserDB, error
 		return nil, fmt.Errorf("err fetch all users %w", err)
 	}
 
-	return pgx.CollectRows(rows, pgx.RowToStructByName[*user.UserDB])
+	users, err := pgx.CollectRows(rows, pgx.RowToStructByName[user.UserDB])
+	if err != nil {
+		return nil, fmt.Errorf("err collectRows all users %w", err)
+	}
+
+	return users, err
 }
 
 func (t *userRepository) GetUserCashForUpdate(ctx context.Context, userID string) (float64, error) {
@@ -118,7 +123,7 @@ func (t *userRepository) GetUserCash(ctx context.Context, userID string) (float6
 }
 
 func (t *userRepository) UpdateUserCash(ctx context.Context, cash float64, userID string) error {
-	query := `UPDATE users SET cash = $1 WHERE id = $2`
+	query := `UPDATE users SET cash = $1 WHERE steam_id = $2`
 
 	_, err := t.db.Exec(ctx, query, cash, userID)
 	if err != nil {

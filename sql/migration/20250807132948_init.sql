@@ -5,7 +5,7 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE TABLE users (
     steam_id TEXT PRIMARY KEY,
     username TEXT NOT NULL,
-    cash NUMERIC(10, 2) NOT NULL DEFAULT 0.00,
+    cash DOUBLE PRECISION NOT NULL DEFAULT 0.00,
     name TEXT NOT NULL,
     email TEXT NOT NULL,
     trade_url TEXT NOT NULL,
@@ -61,24 +61,25 @@ CREATE TABLE transactions (
     offer_id UUID NOT NULL REFERENCES offers (id),
     seller_id TEXT NOT NULL,
     buyer_id TEXT NOT NULL,
+    bot_id TEXT NOT NULL,
     status transaction_status NOT NULL,
     price DOUBLE PRECISION NOT NULL,
-    created_at TIMESTAMPTZ NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 
-    name TEXT NOT NULL,
-    full_name TEXT NOT NULL,
-    market_tradable_restriction INTEGER NOT NULL,
-    icon_url TEXT NOT NULL,
-    name_color TEXT NOT NULL,
-    action_link TEXT,
+    -- name TEXT NOT NULL,
+    -- full_name TEXT NOT NULL,
+    -- market_tradable_restriction INTEGER NOT NULL,
+    -- icon_url TEXT NOT NULL,
+    -- name_color TEXT NOT NULL,
+    -- action_link TEXT,
 
-    tag_type TEXT NOT NULL,
-    tag_weapon_internal TEXT NOT NULL,
-    tag_weapon_name TEXT NOT NULL,
-    tag_quality TEXT NOT NULL,
-    tag_rarity TEXT NOT NULL,
-    tag_rarity_color TEXT NOT NULL,
-    tag_exterior TEXT NOT NULL
+    -- tag_type TEXT NOT NULL,
+    -- tag_weapon_internal TEXT NOT NULL,
+    -- tag_weapon_name TEXT NOT NULL,
+    -- tag_quality TEXT NOT NULL,
+    -- tag_rarity TEXT NOT NULL,
+    -- tag_rarity_color TEXT NOT NULL,
+    -- tag_exterior TEXT NOT NULL
 );
 
 CREATE INDEX idx_transactions_offer_id ON transactions (offer_id);

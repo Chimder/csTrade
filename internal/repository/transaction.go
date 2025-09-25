@@ -29,15 +29,22 @@ func NewTransactionRepo(db Querier) TransactionRepository {
 }
 
 func (t *transactionRepository) CreateTransaction(ctx context.Context, arg transaction.TransactionDB) error {
+	// query := `
+	// 	INSERT INTO transactions (
+	// 		offer_id, seller_id, buyer_id, status, price, name, full_name, market_tradable_restriction,
+	// 		icon_url, name_color, action_link, tag_type, tag_weapon_internal, tag_weapon_name,
+	// 		tag_quality, tag_rarity, tag_rarity_color, tag_exterior
+	// 	) VALUES (
+	// 		@offer_id, @seller_id, @buyer_id, @status, @price, @name, @full_name, @market_tradable_restriction,
+	// 		@icon_url, @name_color, @action_link, @tag_type, @tag_weapon_internal, @tag_weapon_name,
+	// 		@tag_quality, @tag_rarity, @tag_rarity_color, @tag_exterior
+	// 	);
+	// `
 	query := `
 		INSERT INTO transactions (
-			offer_id, seller_id, buyer_id, status, price, name, full_name, market_tradable_restriction,
-			icon_url, name_color, action_link, tag_type, tag_weapon_internal, tag_weapon_name,
-			tag_quality, tag_rarity, tag_rarity_color, tag_exterior
+			offer_id, seller_id, buyer_id, bot_id, status, price
 		) VALUES (
-			@offer_id, @seller_id, @buyer_id, @status, @price, @name, @full_name, @market_tradable_restriction,
-			@icon_url, @name_color, @action_link, @tag_type, @tag_weapon_internal, @tag_weapon_name,
-			@tag_quality, @tag_rarity, @tag_rarity_color, @tag_exterior
+			@offer_id, @seller_id, @buyer_id, @bot_id, @status, @price
 		);
 	`
 
@@ -45,6 +52,7 @@ func (t *transactionRepository) CreateTransaction(ctx context.Context, arg trans
 		"offer_id":  arg.OfferID,
 		"seller_id": arg.SellerID,
 		"buyer_id":  arg.BuyerID,
+		"bot_id":    arg.BotID,
 		"status":    arg.Status,
 		"price":     arg.Price,
 		// "name":                        arg.Name,
@@ -73,12 +81,17 @@ func (t *transactionRepository) GetTransactionByID(ctx context.Context, id strin
 
 	query := `SELECT * FROM transactions WHERE id = $1`
 
-	rows, err := t.db.Query(ctx, query)
+	rows, err := t.db.Query(ctx, query, id)
 	if err != nil {
 		return nil, fmt.Errorf("err fetch transaction by id %w", err)
 	}
 
-	return pgx.CollectOneRow(rows, pgx.RowToStructByName[*transaction.TransactionDB])
+	transaction, err := pgx.CollectOneRow(rows, pgx.RowToStructByName[transaction.TransactionDB])
+	if err != nil {
+		return nil, fmt.Errorf("err collect row transaction by id %w", err)
+	}
+
+	return &transaction, nil
 }
 
 func (t *transactionRepository) GetAllTransaction() ([]transaction.TransactionDB, error) {
