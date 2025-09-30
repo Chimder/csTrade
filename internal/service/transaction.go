@@ -22,8 +22,6 @@ func (trs *TransactionService) GetTransactionByBuyerID(ctx context.Context, id s
 // 	return trs.repo.Transaction.GetTransactionByID(ctx, ID)
 // }
 
-
-
 // func (trs *TransactionService) GetTransactionBySellerID(ctx context.Context, id string) ([]transaction.TransactionDB, error) {
 // 	return trs.repo.Transaction.GetTransactionBySellerID(ctx, id)
 // }

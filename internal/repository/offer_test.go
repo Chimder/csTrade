@@ -1,3 +1,6 @@
+//go:build integration
+// +build integration
+
 package repository
 
 import (
@@ -168,12 +171,14 @@ func TestOfferRepository(t *testing.T) {
 				assert.NoError(t, userErr)
 				assert.NotEmpty(t, userDb)
 
-				userErr = userRepo.UpdateUserCash(ctx, RandPrice(), u.SteamID)
+				newUserCash := RandPrice()
+				userErr = userRepo.UpdateUserCash(ctx, newUserCash, u.SteamID)
 				assert.NoError(t, userErr)
 
 				cash, err := userRepo.GetUserCash(ctx, u.SteamID)
 				assert.NoError(t, err)
 				assert.IsType(t, float64(0), cash)
+				assert.Equal(t, newUserCash, cash)
 
 				offerID, err := offerRepo.CreateOffer(ctx, GetRandOffer(u.SteamID))
 				assert.NoError(t, err)
@@ -186,12 +191,14 @@ func TestOfferRepository(t *testing.T) {
 				err = offerRepo.UpdateOfferAfterReceive(ctx, allBots[rand.Intn(len(allBots))].SteamID, gofakeit.UUID(), offerID)
 				assert.NoError(t, err)
 
-				err = offerRepo.ChangePriceByID(ctx, offerID, RandPrice())
+				newPrice := RandPrice()
+				err = offerRepo.ChangePriceByID(ctx, offerID, newPrice)
 				assert.NoError(t, err)
 
 				offerById, err := offerRepo.GetByID(ctx, offerID)
 				assert.NoError(t, err)
 				assert.NotEmpty(t, offerById)
+				assert.Equal(t, newPrice, offerById.Price)
 
 				assert.NotNil(t, offerById.SteamTradeId)
 				offerBySteamOfferID, err := offerRepo.GetOfferBySteamOfferID(ctx, *offerById.SteamTradeId)

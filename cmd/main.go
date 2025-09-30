@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"csTrade/config"
 	"csTrade/db"
 	"csTrade/internal/handlers/httpgin"
 	"csTrade/internal/repository"
@@ -21,11 +22,12 @@ import (
 //		@description	CSGO trade
 //	  @BasePath	/
 func main() {
-	SetupLogger()
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
+	cfg := config.LoadEnv()
+	SetupLogger(cfg)
 
-	dbconn, err := db.DBConn(ctx)
+	dbconn, err := db.DBConn(ctx, cfg.DbUrl)
 	if err != nil {
 		log.Panic().Msg("Err conn to db")
 		return
@@ -34,10 +36,12 @@ func main() {
 
 	///////////////////
 	botmanager := bots.NewBotManager(repo)
+
+	log.Info().Msg("STARTBOT INIT")
 	botmanager.InitBots(ctx)
 	//////////////////////
 
-	r := httpgin.Init(repo,botmanager)
+	r := httpgin.Init(repo, botmanager)
 	srv := &http.Server{
 		Addr:         ":8080",
 		Handler:      r,

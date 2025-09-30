@@ -1,30 +1,50 @@
 package config
 
 import (
-	"log"
+	"os"
 
-	"github.com/caarlos0/env/v10"
 	"github.com/joho/godotenv"
+	"github.com/rs/zerolog/log"
 )
 
 type EnvVars struct {
-	Username       string `env:"USERNAME"`
-	Password       string `env:"PASSWORD"`
-	SteamID        string `env:"STEAM_ID"`
-	SharedSecret   string `env:"SHARED_SECRET"`
-	IdentitySecret string `env:"IDENTITY_SECRET"`
-	DeviceID       string `env:"DEVICE_ID"`
-	DBUrl          string `env:"DB_URL"`
-	Debug          bool   `env:"DEBUG"`
-	ENV            string `env:"ENV"`
-	LOG_LEVEL      string `env:"LOG_LEVEL"`
+	Username       string
+	Password       string
+	SteamID        string
+	SharedSecret   string
+	IdentitySecret string
+	DeviceID       string
+	DbUrl          string
+	Debug          bool
+	Env            string
+	LogLevel       string
 }
 
 func LoadEnv() *EnvVars {
-	_ = godotenv.Load()
-	cfg := EnvVars{}
-	if err := env.Parse(&cfg); err != nil {
-		log.Fatal(err)
+	if err := godotenv.Load(); err != nil {
+		log.Warn().Msg(".env file not found, using system environment variables")
 	}
-	return &cfg
+	cfg := &EnvVars{
+		Username:       getEnv("USERNAME", ""),
+		Password:       getEnv("PASSWORD", ""),
+		SteamID:        getEnv("STEAM_ID", ""),
+		SharedSecret:   getEnv("SHARED_SECRET", ""),
+		IdentitySecret: getEnv("IDENTITY_SECRET", ""),
+		DeviceID:       getEnv("DEVICE_ID", ""),
+		DbUrl:          getEnv("DB_URL", ""),
+		Env:            getEnv("ENV", "dev"),
+		LogLevel:       getEnv("LOG_LEVEL", "debug"),
+	}
+
+	log.Info().Str("sID", cfg.SteamID).Str("db", cfg.DbUrl).Msg("ENV")
+	return cfg
+}
+
+func getEnv(key, defaultVal string) string {
+	if value := os.Getenv(key); value != "" {
+		return value
+	}
+
+	log.Info().Str("use default", defaultVal).Str("for key", key).Msg("ENV")
+	return defaultVal
 }

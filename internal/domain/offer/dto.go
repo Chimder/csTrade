@@ -32,5 +32,4 @@ type OfferToBuyerReq struct {
 	AssetID    string `json:"asset_id"`
 	ClassID    string `json:"class_id"`
 	InstanceID string `json:"instance_id"`
-
 }

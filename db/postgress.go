@@ -2,20 +2,18 @@ package db
 
 import (
 	"context"
-	"csTrade/config"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	_ "github.com/lib/pq"
-	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 )
 
-func DBConn(ctx context.Context) (*pgxpool.Pool, error) {
-	url := config.LoadEnv().DBUrl
+func DBConn(ctx context.Context, url string) (*pgxpool.Pool, error) {
 
 	config, err := pgxpool.ParseConfig(url)
 	if err != nil {
-		zerolog.Ctx(ctx).Fatal().Err(err).Msg("Failed to parse database config")
+		log.Ctx(ctx).Fatal().Err(err).Msg("Failed to parse db cfg")
 	}
 
 	config.MaxConns = 5
@@ -27,9 +25,10 @@ func DBConn(ctx context.Context) (*pgxpool.Pool, error) {
 
 	pool, err := pgxpool.NewWithConfig(ctx, config)
 	if err != nil {
-		zerolog.Ctx(ctx).Fatal().Err(err).Msg("Failed to connect to database")
+		log.Ctx(ctx).Fatal().Err(err).Msg("Failed conn to db")
+		return nil, err
 	}
 
-	zerolog.Ctx(ctx).Info().Msg("Database pool created successfully")
+	log.Ctx(ctx).Info().Str("db_url", url).Msg("Db pool created")
 	return pool, nil
 }

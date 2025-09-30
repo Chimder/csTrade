@@ -28,4 +28,3 @@ func (trh *TransactionHandler) GetByuerTransaction(c *gin.Context) {
 }
 
 // func (trh *TransactionHandler) GetSellerTransaction(c *gin.Context) {}
-

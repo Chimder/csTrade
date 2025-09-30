@@ -14,6 +14,5 @@ func main() {
 	mac.Write(message)
 	signature := mac.Sum(nil)
 
-
 	fmt.Printf("HMAC signature: %x\n", signature)
 }

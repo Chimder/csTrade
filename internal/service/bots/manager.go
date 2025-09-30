@@ -40,6 +40,7 @@ type SendToBuyerEventTrade struct {
 func (m *BotManager) InitBots(ctx context.Context) {
 	botDB, err := m.repo.Bot.GetBots(ctx)
 	if err != nil {
+		log.Error().Err(err).Msg("ERR DB")
 		return
 	}
 
