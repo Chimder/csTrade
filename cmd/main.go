@@ -36,8 +36,6 @@ func main() {
 
 	///////////////////
 	botmanager := bots.NewBotManager(repo)
-
-	log.Info().Msg("STARTBOT INIT")
 	botmanager.InitBots(ctx)
 	//////////////////////
 

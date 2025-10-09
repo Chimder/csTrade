@@ -59,6 +59,7 @@ func setupTestDB(t *testing.T) *pgxpool.Pool {
 func RandPrice() float64 {
 	rawPrice := gofakeit.Float64Range(50, 2000)
 	price := math.Round(rawPrice*100) / 100
+
 	return price
 }
 
@@ -135,7 +136,6 @@ func TestOfferRepository(t *testing.T) {
 	})
 
 	t.Run("CreateUsers", func(t *testing.T) {
-
 		for i := range 200 {
 			wg.Add(1)
 			go func(i int) {

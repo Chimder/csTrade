@@ -79,6 +79,9 @@ func (r *Repository) WithTxOptions(ctx context.Context, opts pgx.TxOptions, fn f
 	}()
 
 	txRepo := r.newWithTx(tx)
+	if r == txRepo {
+		return fmt.Errorf("use not tx repo")
+	}
 
 	if err = fn(txRepo); err != nil {
 		return err

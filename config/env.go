@@ -22,7 +22,7 @@ type EnvVars struct {
 
 func LoadEnv() *EnvVars {
 	if err := godotenv.Load(); err != nil {
-		log.Warn().Msg(".env file not found, using system environment variables")
+		log.Warn().Msg(".env not found")
 	}
 	cfg := &EnvVars{
 		Username:       getEnv("USERNAME", ""),
@@ -36,7 +36,6 @@ func LoadEnv() *EnvVars {
 		LogLevel:       getEnv("LOG_LEVEL", "debug"),
 	}
 
-	log.Info().Str("sID", cfg.SteamID).Str("db", cfg.DbUrl).Msg("ENV")
 	return cfg
 }
 
