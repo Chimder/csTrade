@@ -12,10 +12,10 @@ import (
 type BotManager struct {
 	Bots   map[string]*bot.SteamBot
 	Events chan interface{}
-	repo   *repository.Repository
+	repo   repository.BotsStore
 }
 
-func NewBotManager(repo *repository.Repository) *BotManager {
+func NewBotManager(repo repository.BotsStore) *BotManager {
 	return &BotManager{
 		Bots:   make(map[string]*bot.SteamBot),
 		Events: make(chan interface{}),
@@ -38,7 +38,7 @@ type SendToBuyerEventTrade struct {
 }
 
 func (m *BotManager) InitBots(ctx context.Context) {
-	botDB, err := m.repo.Bot.GetBots(ctx)
+	botDB, err := m.repo.GetBots(ctx)
 	if err != nil {
 		log.Error().Err(err).Msg("ERR DB")
 		return

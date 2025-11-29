@@ -11,7 +11,7 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-type OfferRepository interface {
+type OfferStore interface {
 	CreateOffer(ctx context.Context, arg *offer.OfferCreateReq) (string, error)
 	GetByID(ctx context.Context, offerID string) (*offer.OfferDB, error)
 	GetOfferBySellerID(ctx context.Context, sellerID string) ([]offer.OfferDB, error)
@@ -25,17 +25,17 @@ type OfferRepository interface {
 	GetOfferBySteamOfferIDForUpdate(ctx context.Context, steamTradeID string) (*offer.OfferDB, error)
 }
 
-type offerRepository struct {
+type OfferRepository struct {
 	db Querier
 }
 
-func NewOfferRepo(db Querier) OfferRepository {
-	return &offerRepository{
+func NewOfferRepo(db Querier) *OfferRepository {
+	return &OfferRepository{
 		db: db,
 	}
 }
 
-func (o *offerRepository) CreateOffer(ctx context.Context, arg *offer.OfferCreateReq) (string, error) {
+func (o *OfferRepository) CreateOffer(ctx context.Context, arg *offer.OfferCreateReq) (string, error) {
 	// log.Info().Msg("CREate offer DB")
 	query := `
 		INSERT INTO offers (
@@ -81,7 +81,7 @@ func (o *offerRepository) CreateOffer(ctx context.Context, arg *offer.OfferCreat
 	return id, nil
 }
 
-func (t *offerRepository) GetByID(ctx context.Context, offerID string) (*offer.OfferDB, error) {
+func (t *OfferRepository) GetByID(ctx context.Context, offerID string) (*offer.OfferDB, error) {
 	query := `SELECT * FROM offers WHERE id = $1`
 	rows, err := t.db.Query(ctx, query, offerID)
 
@@ -96,7 +96,7 @@ func (t *offerRepository) GetByID(ctx context.Context, offerID string) (*offer.O
 	return &offer, err
 }
 
-func (t *offerRepository) GetAll(ctx context.Context) ([]offer.OfferDB, error) {
+func (t *OfferRepository) GetAll(ctx context.Context) ([]offer.OfferDB, error) {
 	query := `SELECT * FROM offers`
 	rows, err := t.db.Query(ctx, query)
 	if err != nil {
@@ -106,7 +106,7 @@ func (t *offerRepository) GetAll(ctx context.Context) ([]offer.OfferDB, error) {
 	return pgx.CollectRows(rows, pgx.RowToStructByName[offer.OfferDB])
 }
 
-func (t *offerRepository) GetOfferBySellerID(ctx context.Context, sellerID string) ([]offer.OfferDB, error) {
+func (t *OfferRepository) GetOfferBySellerID(ctx context.Context, sellerID string) ([]offer.OfferDB, error) {
 	query := `SELECT * FROM offers WHERE seller_id = $1`
 	rows, err := t.db.Query(ctx, query, sellerID)
 	if err != nil {
@@ -116,7 +116,7 @@ func (t *offerRepository) GetOfferBySellerID(ctx context.Context, sellerID strin
 	return pgx.CollectRows(rows, pgx.RowToStructByName[offer.OfferDB])
 }
 
-func (t *offerRepository) GetOfferBySteamOfferID(ctx context.Context, steamTradeID string) (*offer.OfferDB, error) {
+func (t *OfferRepository) GetOfferBySteamOfferID(ctx context.Context, steamTradeID string) (*offer.OfferDB, error) {
 	// log.Info().Msg("Start get")
 	query := `SELECT * FROM offers WHERE steam_trade_id = $1`
 
@@ -133,7 +133,7 @@ func (t *offerRepository) GetOfferBySteamOfferID(ctx context.Context, steamTrade
 	return &offerData, nil
 }
 
-func (t *offerRepository) GetOfferBySteamOfferIDForUpdate(ctx context.Context, steamTradeID string) (*offer.OfferDB, error) {
+func (t *OfferRepository) GetOfferBySteamOfferIDForUpdate(ctx context.Context, steamTradeID string) (*offer.OfferDB, error) {
 	log.Info().Msg("Start get")
 	query := `SELECT * FROM offers WHERE steam_trade_id = $1 FOR UPDATE`
 
@@ -149,7 +149,7 @@ func (t *offerRepository) GetOfferBySteamOfferIDForUpdate(ctx context.Context, s
 
 	return &offerData, nil
 }
-func (t *offerRepository) UpdateOfferAfterReceive(ctx context.Context, botSteamId, steamTradeId, offerID string) error {
+func (t *OfferRepository) UpdateOfferAfterReceive(ctx context.Context, botSteamId, steamTradeId, offerID string) error {
 	reservedUntil := time.Now().UTC().Add(15 * time.Minute)
 
 	query := `UPDATE offers SET bot_steam_id = $1, reserved_until = $2, steam_trade_id = $3, updated_at = now() WHERE id = $4`
@@ -158,7 +158,7 @@ func (t *offerRepository) UpdateOfferAfterReceive(ctx context.Context, botSteamI
 	return err
 }
 
-func (t *offerRepository) AddBotSteamID(ctx context.Context, botSteamId string, offerID string) error {
+func (t *OfferRepository) AddBotSteamID(ctx context.Context, botSteamId string, offerID string) error {
 	steamIDUint, err := strconv.ParseUint(botSteamId, 10, 64)
 	if err != nil {
 		return err
@@ -169,7 +169,7 @@ func (t *offerRepository) AddBotSteamID(ctx context.Context, botSteamId string, 
 	return err
 }
 
-func (t *offerRepository) UpdateOfferReservedStatus(ctx context.Context, offerID string, reservedTime time.Time) error {
+func (t *OfferRepository) UpdateOfferReservedStatus(ctx context.Context, offerID string, reservedTime time.Time) error {
 
 	query := `UPDATE offers SET reserved_until = $1 WHERE id = $2`
 	_, err := t.db.Exec(ctx, query, reservedTime, offerID)
@@ -177,14 +177,14 @@ func (t *offerRepository) UpdateOfferReservedStatus(ctx context.Context, offerID
 	return err
 }
 
-func (t *offerRepository) ChangeStatusByID(ctx context.Context, newStatus string, offerId string) error {
+func (t *OfferRepository) ChangeStatusByID(ctx context.Context, newStatus string, offerId string) error {
 	query := `UPDATE offers SET status = $1 WHERE id = $2`
 	_, err := t.db.Exec(ctx, query, newStatus, offerId)
 
 	return err
 }
 
-func (t *offerRepository) ChangePriceByID(ctx context.Context, offerID string, newPrice float64) error {
+func (t *OfferRepository) ChangePriceByID(ctx context.Context, offerID string, newPrice float64) error {
 	query := `UPDATE offers SET price = $1 WHERE id = $2`
 	_, err := t.db.Exec(ctx, query, newPrice, offerID)
 

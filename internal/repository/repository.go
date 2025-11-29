@@ -20,10 +20,10 @@ type Repository struct {
 	db   Querier
 	pool *pgxpool.Pool
 
-	Offer       OfferRepository
-	User        UserRepository
-	Transaction TransactionRepository
-	Bot         BotsRepository
+	Offer       OfferStore
+	User        UserStore
+	Transaction TransactionStore
+	Bot         BotsStore
 }
 
 func NewRepository(pool *pgxpool.Pool) *Repository {

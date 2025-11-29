@@ -17,22 +17,22 @@ type Bot struct {
 	DeviceID       string `db:"device_id"`
 }
 
-type BotsRepository interface {
+type BotsStore interface {
 	GetBots(ctx context.Context) ([]Bot, error)
 	CreateBots(ctx context.Context, arg *Bot) error
 }
 
-type botsRepository struct {
+type BotsRepository struct {
 	db Querier
 }
 
-func NewBotsRepo(db Querier) BotsRepository {
-	return &botsRepository{
+func NewBotsRepo(db Querier) *BotsRepository {
+	return &BotsRepository{
 		db: db,
 	}
 }
 
-func (o *botsRepository) CreateBots(ctx context.Context, arg *Bot) error {
+func (o *BotsRepository) CreateBots(ctx context.Context, arg *Bot) error {
 	query := `
 		INSERT INTO bots (
 			steam_id, username, password, shared_secret, skin_count, identity_secret, device_id
@@ -57,7 +57,7 @@ func (o *botsRepository) CreateBots(ctx context.Context, arg *Bot) error {
 	return nil
 }
 
-func (o *botsRepository) GetBots(ctx context.Context) ([]Bot, error) {
+func (o *BotsRepository) GetBots(ctx context.Context) ([]Bot, error) {
 	query := `SELECT * FROM bots`
 
 	rows, err := o.db.Query(ctx, query)

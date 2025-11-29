@@ -9,7 +9,7 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-type UserRepository interface {
+type UserStore interface {
 	CreateUser(ctx context.Context, arg *user.UserCreateReq) error
 
 	GetUserBySteamId(ctx context.Context, steamID string) (*user.UserDB, error)
@@ -23,17 +23,17 @@ type UserRepository interface {
 	UpdateUserCash(ctx context.Context, cash float64, userID string) error
 }
 
-type userRepository struct {
+type UserRepository struct {
 	db Querier
 }
 
-func NewUserRepository(db Querier) UserRepository {
-	return &userRepository{
+func NewUserRepository(db Querier) *UserRepository {
+	return &UserRepository{
 		db: db,
 	}
 }
 
-func (o *userRepository) CreateUser(ctx context.Context, arg *user.UserCreateReq) error {
+func (o *UserRepository) CreateUser(ctx context.Context, arg *user.UserCreateReq) error {
 	query := `
 		INSERT INTO users (steam_id, name, username, email, trade_url, avatar_url)
 		VALUES (@steam_id, @name, @username, @email, @trade_url, @avatar_url);
@@ -56,7 +56,7 @@ func (o *userRepository) CreateUser(ctx context.Context, arg *user.UserCreateReq
 	return nil
 }
 
-func (t *userRepository) GetUserBySteamId(ctx context.Context, steamID string) (*user.UserDB, error) {
+func (t *UserRepository) GetUserBySteamId(ctx context.Context, steamID string) (*user.UserDB, error) {
 	// log.Info().Str("steamID", steamID).Msg("REPO USER")
 	query := `SELECT * FROM users WHERE steam_id = $1`
 
@@ -69,7 +69,7 @@ func (t *userRepository) GetUserBySteamId(ctx context.Context, steamID string) (
 	return &user, err
 }
 
-func (t *userRepository) GetUserBySteamIdForUpdate(ctx context.Context, steamID string) (*user.UserDB, error) {
+func (t *UserRepository) GetUserBySteamIdForUpdate(ctx context.Context, steamID string) (*user.UserDB, error) {
 	log.Info().Str("steamID", steamID).Msg("REPO USER")
 	query := `SELECT * FROM users WHERE steam_id = $1 FOR UPDATE`
 
@@ -82,7 +82,7 @@ func (t *userRepository) GetUserBySteamIdForUpdate(ctx context.Context, steamID 
 	return &user, err
 }
 
-func (t *userRepository) GetAllUsers(ctx context.Context) ([]user.UserDB, error) {
+func (t *UserRepository) GetAllUsers(ctx context.Context) ([]user.UserDB, error) {
 	query := `SELECT * FROM users`
 
 	rows, err := t.db.Query(ctx, query)
@@ -98,7 +98,7 @@ func (t *userRepository) GetAllUsers(ctx context.Context) ([]user.UserDB, error)
 	return users, err
 }
 
-func (t *userRepository) GetUserCashForUpdate(ctx context.Context, userID string) (float64, error) {
+func (t *UserRepository) GetUserCashForUpdate(ctx context.Context, userID string) (float64, error) {
 	query := `SELECT cash FROM users WHERE steam_id = $1 FOR UPDATE`
 
 	var cash float64
@@ -110,7 +110,7 @@ func (t *userRepository) GetUserCashForUpdate(ctx context.Context, userID string
 	return cash, nil
 }
 
-func (t *userRepository) GetUserCash(ctx context.Context, userID string) (float64, error) {
+func (t *UserRepository) GetUserCash(ctx context.Context, userID string) (float64, error) {
 	query := `SELECT cash FROM users WHERE steam_id = $1`
 
 	var cash float64
@@ -122,7 +122,7 @@ func (t *userRepository) GetUserCash(ctx context.Context, userID string) (float6
 	return cash, nil
 }
 
-func (t *userRepository) UpdateUserCash(ctx context.Context, cash float64, userID string) error {
+func (t *UserRepository) UpdateUserCash(ctx context.Context, cash float64, userID string) error {
 	query := `UPDATE users SET cash = $1 WHERE steam_id = $2`
 
 	_, err := t.db.Exec(ctx, query, cash, userID)

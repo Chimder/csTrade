@@ -35,7 +35,7 @@ func main() {
 	repo := repository.NewRepository(dbconn)
 
 	///////////////////
-	botmanager := bots.NewBotManager(repo)
+	botmanager := bots.NewBotManager(repo.Bot)
 	botmanager.InitBots(ctx)
 	//////////////////////
 

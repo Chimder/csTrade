@@ -276,5 +276,6 @@ func TestOfferRepository(t *testing.T) {
 
 		wg.Wait()
 	})
+
 	// time.Sleep(5 * time.Minute)
 }
