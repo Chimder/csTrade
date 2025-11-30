@@ -16,6 +16,7 @@ func DBConn(ctx context.Context, url string) (*pgxpool.Pool, error) {
 		log.Ctx(ctx).Fatal().Err(err).Msg("Failed to parse db cfg")
 	}
 
+
 	config.MaxConns = 5
 	config.MinConns = 1
 	config.MaxConnLifetime = 30 * time.Minute
